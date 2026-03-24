@@ -8,7 +8,10 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-22.04, macos-13, macos-15]
+        # Linux wheels are the only artifacts currently published from CI.
+        # Keep this workflow on Ubuntu to reduce runtime/cost and avoid
+        # maintaining macOS runner-specific dependency breakages here.
+        os: [ubuntu-22.04]
         config: [cibuildwheel, cibuildwheel-tensorflow]
 
     steps:
