@@ -39,9 +39,9 @@ jobs:
         # Workaround for https://github.com/actions/checkout/issues/290
         run: git fetch --tags --force
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
-          python-version: 3.8
+          python-version: "3.11"
       - name: Build wheels in a Docker image
         run: |
           docker pull $DOCKER_IMAGE > /dev/null
@@ -49,7 +49,7 @@ jobs:
       - name: Build sdist
         run: | 
           ls wheelhouse/
-          sudo python setup.py sdist
+          python setup.py sdist
       - name: Upload wheels and sdist
         uses: actions/upload-artifact@v4
         with:
