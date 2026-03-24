@@ -77,7 +77,15 @@ def get_version():
         # Development version. Get the number of commits after the last release
         git_version = get_git_version()
         print('git describe:', git_version)
-        dev_commits = git_version.split('-')[-2] if git_version else ''
+        # `git describe --always --tags` can return either:
+        #   - "<tag>-<n>-g<sha>" when reachable from a tag
+        #   - "<sha>" when no tag is reachable
+        # In the latter case there is no commit-count token to parse.
+        dev_commits = '0'
+        if git_version:
+            git_tokens = git_version.split('-')
+            if len(git_tokens) >= 3 and git_tokens[-2].isdigit():
+                dev_commits = git_tokens[-2]
         if not dev_commits.isdigit():
             print('Error parsing the number of dev commits: %s', dev_commits)
             dev_commits = '0'
