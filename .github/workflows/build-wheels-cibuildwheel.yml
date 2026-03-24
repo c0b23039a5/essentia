@@ -8,9 +8,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        # Follow the official cibuildwheel multi-platform model,
-        # while keeping our two project config files.
-        os: [ubuntu-22.04, macos-13, macos-15]
+        # Build only on Ubuntu as requested.
+        os: [ubuntu-latest]
         config: [cibuildwheel, cibuildwheel-tensorflow]
 
     steps:
