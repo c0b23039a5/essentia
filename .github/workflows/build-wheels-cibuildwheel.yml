@@ -27,32 +27,32 @@ jobs:
             cibw_platform: linux
           - runner: ubuntu-24.04-arm
             os: linux
-            arch: arm64
+            arch: aarch64
             config: cibuildwheel
             cibw_platform: linux
           - runner: ubuntu-24.04-arm
             os: linux
-            arch: arm64
+            arch: aarch64
             config: cibuildwheel-tensorflow
             skip_reason: essentia-tensorflow wheels are currently limited to Linux x86_64 and macOS due TensorFlow binary/toolchain constraints.
           - runner: windows-latest
             os: windows
-            arch: x86_64
+            arch: AMD64
             config: cibuildwheel
             cibw_platform: windows
           - runner: windows-latest
             os: windows
-            arch: x86_64
+            arch: AMD64
             config: cibuildwheel-tensorflow
             skip_reason: TensorFlow wheel build pipeline is not supported on Windows in this repository.
           - runner: windows-11-arm
             os: windows
-            arch: arm64
+            arch: ARM64
             config: cibuildwheel
             cibw_platform: windows
           - runner: windows-11-arm
             os: windows
-            arch: arm64
+            arch: ARM64
             config: cibuildwheel-tensorflow
             skip_reason: TensorFlow wheel build pipeline is not supported on Windows in this repository.
           - runner: macos-15-intel
@@ -64,7 +64,7 @@ jobs:
             os: macos
             arch: x86_64
             config: cibuildwheel-tensorflow
-            cibw_platform: macos
+            skip_reason: TensorFlow Homebrew packaging is currently not stable on macOS runners used by this repository
           - runner: macos-latest
             os: macos
             arch: arm64
@@ -74,12 +74,10 @@ jobs:
             os: macos
             arch: arm64
             config: cibuildwheel-tensorflow
-            cibw_platform: macos
+            skip_reason: TensorFlow Homebrew packaging is currently not stable on macOS runners used by this repository
 
     env:
-      CIBW_ARCHS_LINUX: ${{ matrix.arch }}
-      CIBW_ARCHS_WINDOWS: ${{ matrix.arch }}
-      CIBW_ARCHS_MACOS: ${{ matrix.arch }}
+      CIBW_ARCHS: ${{ matrix.arch }}
 
     steps:
       - uses: actions/checkout@v6
