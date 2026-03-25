@@ -1,31 +1,115 @@
 name: Build Python wheels (cibuildwheel)
 
-on: [push, pull_request]
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
 
 jobs:
   build_wheels:
-    name: ${{ matrix.os }} / ${{ matrix.config }}
-    runs-on: ${{ matrix.os }}
+    name: ${{ matrix.config }} / ${{ matrix.runner }}
+    runs-on: ${{ matrix.runner }}
     strategy:
+      fail-fast: false
       matrix:
-        os: [ubuntu-22.04, macos-13, macos-15]
-        config: [cibuildwheel, cibuildwheel-tensorflow]
+        include:
+          - runner: ubuntu-latest
+            os: linux
+            arch: x86_64
+            config: cibuildwheel
+            cibw_platform: linux
+          - runner: ubuntu-latest
+            os: linux
+            arch: x86_64
+            config: cibuildwheel-tensorflow
+            cibw_platform: linux
+          - runner: ubuntu-24.04-arm
+            os: linux
+            arch: arm64
+            config: cibuildwheel
+            skip_reason: ARM Linux wheel builds are temporarily disabled until the aarch64 manylinux dependency bootstrap is stabilized.
+          - runner: ubuntu-24.04-arm
+            os: linux
+            arch: arm64
+            config: cibuildwheel-tensorflow
+            skip_reason: essentia-tensorflow wheels are currently limited to Linux x86_64 and macOS due TensorFlow binary/toolchain constraints.
+          - runner: windows-latest
+            os: windows
+            arch: x86_64
+            config: cibuildwheel
+            cibw_platform: windows
+          - runner: windows-latest
+            os: windows
+            arch: x86_64
+            config: cibuildwheel-tensorflow
+            skip_reason: TensorFlow wheel build pipeline is not supported on Windows in this repository.
+          - runner: windows-11-arm
+            os: windows
+            arch: arm64
+            config: cibuildwheel
+            cibw_platform: windows
+          - runner: windows-11-arm
+            os: windows
+            arch: arm64
+            config: cibuildwheel-tensorflow
+            skip_reason: TensorFlow wheel build pipeline is not supported on Windows in this repository.
+          - runner: macos-15-intel
+            os: macos
+            arch: x86_64
+            config: cibuildwheel
+            cibw_platform: macos
+          - runner: macos-15-intel
+            os: macos
+            arch: x86_64
+            config: cibuildwheel-tensorflow
+            cibw_platform: macos
+          - runner: macos-latest
+            os: macos
+            arch: arm64
+            config: cibuildwheel
+            cibw_platform: macos
+          - runner: macos-latest
+            os: macos
+            arch: arm64
+            config: cibuildwheel-tensorflow
+            cibw_platform: macos
+
+    env:
+      CIBW_ARCHS_LINUX: ${{ matrix.arch }}
+      CIBW_ARCHS_WINDOWS: ${{ matrix.arch }}
+      CIBW_ARCHS_MACOS: ${{ matrix.arch }}
+      CIBW_BUILD: "cp39-* cp310-* cp311-* cp312-* cp313-*"
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
       - name: Fetch release tags from GitHub
-        # Workaround for https://github.com/actions/checkout/issues/290
         run: git fetch --tags --force
 
-      - name: Build wheels
-        uses: pypa/cibuildwheel@v2.23.2
+      - uses: actions/setup-python@v6
         with:
-          config-file: ${{ matrix.config }}.toml
+          python-version: "3.12"
 
-      - uses: actions/upload-artifact@v4
+      - name: Install cibuildwheel
+        if: ${{ !matrix.skip_reason }}
+        run: python -m pip install --upgrade pip "cibuildwheel==3.4.0"
+
+      - name: Build wheels
+        if: ${{ !matrix.skip_reason }}
+        run: python -m cibuildwheel --config-file "${{ matrix.config }}.toml" --platform "${{ matrix.cibw_platform }}" --output-dir wheelhouse
+
+      - name: Skip unsupported combination
+        if: ${{ matrix.skip_reason }}
+        run: |
+          echo "Skipping ${{ matrix.config }} on ${{ matrix.runner }}: ${{ matrix.skip_reason }}"
+
+      - uses: actions/upload-artifact@v6
+        if: ${{ !matrix.skip_reason }}
         with:
           path: ./wheelhouse/*.whl
-          name: artifact-${{ matrix.os }}-${{ matrix.config }}
+          name: wheels-${{ matrix.config }}-${{ matrix.os }}-${{ matrix.arch }}
+          if-no-files-found: error
