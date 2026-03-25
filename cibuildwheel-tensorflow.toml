@@ -44,7 +44,7 @@ before-all = [
   #"SDKROOT=$(xcrun --sdk macosx13.0 --show-sdk-path) brew install --build-from-source tensorflow",
   # ---
   # Override VIRTUAL_ENV set by cibuildwheel to ensure global install
-  "EIGEN3_PREFIX=$(brew --prefix eigen@3) && EIGEN3_PKGCONFIG=\"${EIGEN3_PREFIX}/share/pkgconfig:${EIGEN3_PREFIX}/lib/pkgconfig\" && VIRTUAL_ENV=/usr/local python waf configure --with-tensorflow --pkg-config-path=\"${EIGEN3_PKGCONFIG}:${PKG_CONFIG_PATH}\"",
+  "BREW_DEPS=\"eigen@3 libyaml fftw ffmpeg libsamplerate libtag chromaprint\" && BREW_PC_PATHS=$(for dep in ${BREW_DEPS}; do prefix=$(brew --prefix ${dep}); printf \"%s:%s:\" \"${prefix}/lib/pkgconfig\" \"${prefix}/share/pkgconfig\"; done) && BREW_PC_PATHS=${BREW_PC_PATHS%:} && VIRTUAL_ENV=/usr/local python waf configure --with-tensorflow --pkg-config-path=\"${BREW_PC_PATHS}:${PKG_CONFIG_PATH}\"",
   "python waf",
   "python waf install",
   # Monkey-patch package name.
@@ -79,7 +79,7 @@ before-all = [
   #"SDKROOT=$(xcrun --sdk macosx14.0 --show-sdk-path) brew install --build-from-source tensorflow",
   # ---
   # Override VIRTUAL_ENV set by cibuildwheel to ensure global install
-  "EIGEN3_PREFIX=$(brew --prefix eigen@3) && EIGEN3_PKGCONFIG=\"${EIGEN3_PREFIX}/share/pkgconfig:${EIGEN3_PREFIX}/lib/pkgconfig\" && VIRTUAL_ENV=/usr/local python waf configure --with-tensorflow --pkg-config-path=\"${EIGEN3_PKGCONFIG}:${PKG_CONFIG_PATH}\" --arch arm64 --no-msse",
+  "BREW_DEPS=\"eigen@3 libyaml fftw ffmpeg libsamplerate libtag chromaprint\" && BREW_PC_PATHS=$(for dep in ${BREW_DEPS}; do prefix=$(brew --prefix ${dep}); printf \"%s:%s:\" \"${prefix}/lib/pkgconfig\" \"${prefix}/share/pkgconfig\"; done) && BREW_PC_PATHS=${BREW_PC_PATHS%:} && VIRTUAL_ENV=/usr/local python waf configure --with-tensorflow --pkg-config-path=\"${BREW_PC_PATHS}:${PKG_CONFIG_PATH}\" --arch arm64 --no-msse",
   "python waf",
   "sudo python waf install",
   # Monkey-patch package name.
