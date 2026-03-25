@@ -43,6 +43,18 @@ class EssentiaBuildExtension(build_ext):
             macos_arm64_flags = ['--arch=arm64', '--no-msse']
 
         pkg_config_path = os.getenv('PKG_CONFIG_PATH')
+        if sys.platform == 'darwin':
+            brew_deps = ['eigen@3', 'libyaml', 'fftw', 'ffmpeg', 'libsamplerate', 'libtag', 'chromaprint', 'libtensorflow']
+            brew_pkg_paths = []
+            for dep in brew_deps:
+                try:
+                    prefix = subprocess.check_output(['brew', '--prefix', dep], text=True).strip()
+                except Exception:
+                    continue
+                brew_pkg_paths.extend([os.path.join(prefix, 'lib', 'pkgconfig'),
+                                       os.path.join(prefix, 'share', 'pkgconfig')])
+            if brew_pkg_paths:
+                pkg_config_path = ':'.join(brew_pkg_paths + ([pkg_config_path] if pkg_config_path else []))
         pkg_config_flags = []
         if pkg_config_path:
             pkg_config_flags = [f'--pkg-config-path={pkg_config_path}']
