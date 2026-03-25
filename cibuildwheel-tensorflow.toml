@@ -30,7 +30,7 @@ environment = { PROJECT_NAME="essentia-tensorflow", ESSENTIA_PROJECT_NAME="${PRO
 
 before-all = [
   "brew install pkg-config gcc readline sqlite gdbm freetype libpng",
-  "brew install eigen libyaml fftw ffmpeg libsamplerate libtag",
+  "brew install eigen@3 libyaml fftw ffmpeg libsamplerate libtag",
   "brew install chromaprint",
   # Delocate checks for the min OS version (LC_BUILD_VERSION or C_VERSION_MIN_MACOSX).
   # Tensorflow bottle a has minimum target of 14.2 which is too new.
@@ -65,7 +65,7 @@ environment = { PROJECT_NAME="essentia-tensorflow", ESSENTIA_PROJECT_NAME="${PRO
 
 before-all = [
   "brew install pkg-config gcc readline sqlite gdbm libpng",
-  "brew install eigen libyaml fftw ffmpeg libsamplerate libtag",
+  "brew install eigen@3 libyaml fftw ffmpeg libsamplerate libtag",
   "brew install chromaprint",
   # Delocate checks for the min OS version (LC_BUILD_VERSION or C_VERSION_MIN_MACOSX).
   # Tensorflow bottle a has minimum target of 15.2 which is too new.

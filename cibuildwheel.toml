@@ -26,7 +26,7 @@ environment = { PROJECT_NAME="essentia", ESSENTIA_PROJECT_NAME="${PROJECT_NAME}"
 
 before-all = [
   "brew install pkg-config gcc readline sqlite gdbm freetype libpng",
-  "brew install eigen libyaml fftw ffmpeg libsamplerate libtag",
+  "brew install eigen@3 libyaml fftw ffmpeg libsamplerate libtag",
   "brew install chromaprint",
   #"brew tap MTG/essentia",
   #"brew install gaia --HEAD",
@@ -47,7 +47,7 @@ environment = { PROJECT_NAME="essentia", ESSENTIA_PROJECT_NAME="${PROJECT_NAME}"
 
 before-all = [
   "brew install pkg-config gcc readline sqlite gdbm libpng",
-  "brew install eigen libyaml fftw ffmpeg libsamplerate libtag",
+  "brew install eigen@3 libyaml fftw ffmpeg libsamplerate libtag",
   "brew install chromaprint",
   # Override VIRTUAL_ENV set by cibuildwheel to ensure global install
   "VIRTUAL_ENV=/usr/local python waf configure --pkg-config-path=\"${PKG_CONFIG_PATH}\" --arch arm64 --no-msse",
