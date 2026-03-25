@@ -23,14 +23,14 @@ class EssentiaInstall(install_lib):
         global library
         install_dir = os.path.join(self.install_dir, library.split(os.sep)[-1])
         res = shutil.move(library, install_dir)
-        os.system("ls -l %s" % self.install_dir)
         return [install_dir]
 
 
 class EssentiaBuildExtension(build_ext):
     def run(self):
         global library
-        os.system('rm -rf tmp; mkdir tmp')
+        shutil.rmtree('tmp', ignore_errors=True)
+        os.makedirs('tmp', exist_ok=True)
 
         # Ugly hack using an enviroment variable... There's no way to pass a
         # custom flag to python setup.py bdist_wheel
