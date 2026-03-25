@@ -36,7 +36,7 @@ before-all = [
   # Tensorflow bottle a has minimum target of 14.2 which is too new.
   # We could build from source as a workaround, however, it takes too much time on the CI worker.
   # To keep it simple, just use the bottles available for tensorflow.
-  "brew install tensorflow",
+  "brew install tensorflow libtensorflow",
   # ---
   # Building tensorflow from source:
   #"echo Checking available SDKs:",
@@ -44,7 +44,7 @@ before-all = [
   #"SDKROOT=$(xcrun --sdk macosx13.0 --show-sdk-path) brew install --build-from-source tensorflow",
   # ---
   # Override VIRTUAL_ENV set by cibuildwheel to ensure global install
-  "BREW_DEPS=\"eigen@3 libyaml fftw ffmpeg libsamplerate libtag chromaprint\" && BREW_PC_PATHS=$(for dep in ${BREW_DEPS}; do prefix=$(brew --prefix ${dep}); printf \"%s:%s:\" \"${prefix}/lib/pkgconfig\" \"${prefix}/share/pkgconfig\"; done) && BREW_PC_PATHS=${BREW_PC_PATHS%:} && VIRTUAL_ENV=/usr/local python waf configure --with-tensorflow --pkg-config-path=\"${BREW_PC_PATHS}:${PKG_CONFIG_PATH}\"",
+  "BREW_DEPS=\"eigen@3 libyaml fftw ffmpeg libsamplerate libtag chromaprint libtensorflow\" && BREW_PC_PATHS=$(for dep in ${BREW_DEPS}; do prefix=$(brew --prefix ${dep}); printf \"%s:%s:\" \"${prefix}/lib/pkgconfig\" \"${prefix}/share/pkgconfig\"; done) && BREW_PC_PATHS=${BREW_PC_PATHS%:} && VIRTUAL_ENV=/usr/local python waf configure --with-tensorflow --pkg-config-path=\"${BREW_PC_PATHS}:${PKG_CONFIG_PATH}\"",
   "python waf",
   "python waf install",
   # Monkey-patch package name.
@@ -71,7 +71,7 @@ before-all = [
   # Tensorflow bottle a has minimum target of 15.2 which is too new.
   # We could build from source as a workaround, however, it takes too much time on the CI worker.
   # To keep it simple, just use the bottles available for tensorflow.
-  "brew install tensorflow",
+  "brew install tensorflow libtensorflow",
   # ---
   # Building tensorflow from source:
   #"echo Checking available SDKs:",
@@ -79,7 +79,7 @@ before-all = [
   #"SDKROOT=$(xcrun --sdk macosx14.0 --show-sdk-path) brew install --build-from-source tensorflow",
   # ---
   # Override VIRTUAL_ENV set by cibuildwheel to ensure global install
-  "BREW_DEPS=\"eigen@3 libyaml fftw ffmpeg libsamplerate libtag chromaprint\" && BREW_PC_PATHS=$(for dep in ${BREW_DEPS}; do prefix=$(brew --prefix ${dep}); printf \"%s:%s:\" \"${prefix}/lib/pkgconfig\" \"${prefix}/share/pkgconfig\"; done) && BREW_PC_PATHS=${BREW_PC_PATHS%:} && VIRTUAL_ENV=/usr/local python waf configure --with-tensorflow --pkg-config-path=\"${BREW_PC_PATHS}:${PKG_CONFIG_PATH}\" --arch arm64 --no-msse",
+  "BREW_DEPS=\"eigen@3 libyaml fftw ffmpeg libsamplerate libtag chromaprint libtensorflow\" && BREW_PC_PATHS=$(for dep in ${BREW_DEPS}; do prefix=$(brew --prefix ${dep}); printf \"%s:%s:\" \"${prefix}/lib/pkgconfig\" \"${prefix}/share/pkgconfig\"; done) && BREW_PC_PATHS=${BREW_PC_PATHS%:} && VIRTUAL_ENV=/usr/local python waf configure --with-tensorflow --pkg-config-path=\"${BREW_PC_PATHS}:${PKG_CONFIG_PATH}\" --arch arm64 --no-msse",
   "python waf",
   "sudo python waf install",
   # Monkey-patch package name.
