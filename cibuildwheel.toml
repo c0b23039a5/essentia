@@ -13,6 +13,7 @@ before-all = [
 [tool.cibuildwheel.windows]
 environment = { PROJECT_NAME="essentia", ESSENTIA_PROJECT_NAME="${PROJECT_NAME}", ESSENTIA_WHEEL_SKIP_3RDPARTY=1, ESSENTIA_WHEEL_ONLY_PYTHON=1, PYTHONUTF8=1, PYTHONIOENCODING="utf-8", PKG_CONFIG_PATH="tmp/lib/pkgconfig" }
 before-all = [
+  "python -m pip install --upgrade pip numpy",
   "python packaging/bootstrap_eigen_pc.py",
   "python waf configure --build-static --with-python --prefix=tmp --pkg-config-path=tmp/lib/pkgconfig",
   "python waf",
