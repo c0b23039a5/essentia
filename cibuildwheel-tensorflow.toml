@@ -44,7 +44,7 @@ before-all = [
   #"SDKROOT=$(xcrun --sdk macosx13.0 --show-sdk-path) brew install --build-from-source tensorflow",
   # ---
   # Override VIRTUAL_ENV set by cibuildwheel to ensure global install
-  "VIRTUAL_ENV=/usr/local python waf configure --with-tensorflow --pkg-config-path=\"${PKG_CONFIG_PATH}\"",
+  "EIGEN3_PREFIX=$(brew --prefix eigen@3) && EIGEN3_PKGCONFIG=\"${EIGEN3_PREFIX}/share/pkgconfig:${EIGEN3_PREFIX}/lib/pkgconfig\" && VIRTUAL_ENV=/usr/local python waf configure --with-tensorflow --pkg-config-path=\"${EIGEN3_PKGCONFIG}:${PKG_CONFIG_PATH}\"",
   "python waf",
   "python waf install",
   # Monkey-patch package name.
@@ -79,7 +79,7 @@ before-all = [
   #"SDKROOT=$(xcrun --sdk macosx14.0 --show-sdk-path) brew install --build-from-source tensorflow",
   # ---
   # Override VIRTUAL_ENV set by cibuildwheel to ensure global install
-  "VIRTUAL_ENV=/usr/local python waf configure --with-tensorflow --pkg-config-path=\"${PKG_CONFIG_PATH}\" --arch arm64 --no-msse",
+  "EIGEN3_PREFIX=$(brew --prefix eigen@3) && EIGEN3_PKGCONFIG=\"${EIGEN3_PREFIX}/share/pkgconfig:${EIGEN3_PREFIX}/lib/pkgconfig\" && VIRTUAL_ENV=/usr/local python waf configure --with-tensorflow --pkg-config-path=\"${EIGEN3_PKGCONFIG}:${PKG_CONFIG_PATH}\" --arch arm64 --no-msse",
   "python waf",
   "sudo python waf install",
   # Monkey-patch package name.

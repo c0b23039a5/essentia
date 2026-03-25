@@ -31,7 +31,7 @@ before-all = [
   #"brew tap MTG/essentia",
   #"brew install gaia --HEAD",
   # Override VIRTUAL_ENV set by cibuildwheel to ensure global install
-  "VIRTUAL_ENV=/usr/local python waf configure --pkg-config-path=\"${PKG_CONFIG_PATH}\"",
+  "EIGEN3_PREFIX=$(brew --prefix eigen@3) && EIGEN3_PKGCONFIG=\"${EIGEN3_PREFIX}/share/pkgconfig:${EIGEN3_PREFIX}/lib/pkgconfig\" && VIRTUAL_ENV=/usr/local python waf configure --pkg-config-path=\"${EIGEN3_PKGCONFIG}:${PKG_CONFIG_PATH}\"",
   "python waf",
   "python waf install"
 ]
@@ -50,7 +50,7 @@ before-all = [
   "brew install eigen@3 libyaml fftw ffmpeg libsamplerate libtag",
   "brew install chromaprint",
   # Override VIRTUAL_ENV set by cibuildwheel to ensure global install
-  "VIRTUAL_ENV=/usr/local python waf configure --pkg-config-path=\"${PKG_CONFIG_PATH}\" --arch arm64 --no-msse",
+  "EIGEN3_PREFIX=$(brew --prefix eigen@3) && EIGEN3_PKGCONFIG=\"${EIGEN3_PREFIX}/share/pkgconfig:${EIGEN3_PREFIX}/lib/pkgconfig\" && VIRTUAL_ENV=/usr/local python waf configure --pkg-config-path=\"${EIGEN3_PKGCONFIG}:${PKG_CONFIG_PATH}\" --arch arm64 --no-msse",
   "python waf",
   "sudo python waf install",
 ]
