@@ -124,10 +124,10 @@ def configure(ctx):
     if ctx.env.PKG_CONFIG_PATH:
         os.environ["PKG_CONFIG_PATH"] = ctx.env.PKG_CONFIG_PATH
         os.environ["PKG_CONFIG_LIBDIR"] = os.environ["PKG_CONFIG_PATH"]
-        print("→ Searching *.pc pkg-config files for dependencies in %s (default paths are ignored)" % os.environ["PKG_CONFIG_PATH"])
+        print("-> Searching *.pc pkg-config files for dependencies in %s (default paths are ignored)" % os.environ["PKG_CONFIG_PATH"])
 
     elif "PKG_CONFIG_PATH" in os.environ:
-        print("→ Searching *.pc pkg-config files for dependencies in %s and default paths" % os.environ["PKG_CONFIG_PATH"])
+        print("-> Searching *.pc pkg-config files for dependencies in %s and default paths" % os.environ["PKG_CONFIG_PATH"])
 
     # Make check_cfg find PKG_CONFIG_PATH
     ctx.env.env = dict(os.environ)
@@ -136,7 +136,7 @@ def configure(ctx):
     #    check_cfg_args += ['--static']
 
     if ctx.env.ONLY_PYTHON:
-       print("→ Building only Essentia's python bindings (libessentia should be pre-installed)")
+       print("-> Building only Essentia's python bindings (libessentia should be pre-installed)")
        ctx.check_cfg(package='essentia', uselib_store='ESSENTIA',
                       args=check_cfg_args, mandatory=True)
        ctx.env.USE_LIBS = 'ESSENTIA'
@@ -457,7 +457,7 @@ def buildRegFile(ctx):
 
 
 def build(ctx):
-    print('→ building from ' + ctx.path.abspath())
+    print('-> building from ' + ctx.path.abspath())
 
     if ctx.env.ONLY_PYTHON:
         ctx.recurse('python')

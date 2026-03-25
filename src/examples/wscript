@@ -142,7 +142,7 @@ def configure(ctx):
 
 
 def build(ctx):
-    print('→ building from ' + ctx.path.abspath())
+    print('-> building from ' + ctx.path.abspath())
 
     if len(ctx.env.EXAMPLE_LIST):
         def build_example(prog_name, other=None):

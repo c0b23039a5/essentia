@@ -15,9 +15,9 @@ def configure(ctx):
     ctx.load('compiler_c python')
     ctx.check_python_version((2,7,0))
     if int(ctx.env.PYTHON_VERSION[0]) == 2:
-        print ('→ Configuring for python2')
+        print ('-> Configuring for python2')
     else:
-        print ('→ Configuring for python3')
+        print ('-> Configuring for python3')
 
     ctx.check_python_headers(features='pyext')
     ctx.check_python_module('numpy')
@@ -36,7 +36,7 @@ def adjust(objs, path):
     return [ '%s/%s' % (path, obj) for obj in objs ]
 
 def build(ctx):
-    print('→ building from ' + ctx.path.abspath())
+    print('-> building from ' + ctx.path.abspath())
 
     # gets the path from the active virtualenv
     PYLIB = distutils.sysconfig.get_python_lib()
