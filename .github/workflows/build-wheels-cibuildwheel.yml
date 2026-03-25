@@ -44,7 +44,7 @@ jobs:
             arch: x86_64
             cibw_arch: AMD64
             config: cibuildwheel
-            skip_reason: Essentia Python bindings are not supported on Windows yet; keep Windows runners as explicit skip-only jobs.
+            cibw_platform: windows
           - runner: windows-latest
             os: windows
             arch: x86_64
@@ -56,7 +56,7 @@ jobs:
             arch: arm64
             cibw_arch: ARM64
             config: cibuildwheel
-            skip_reason: Essentia Python bindings are not supported on Windows yet; keep Windows runners as explicit skip-only jobs.
+            cibw_platform: windows
           - runner: windows-11-arm
             os: windows
             arch: arm64
