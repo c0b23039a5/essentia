@@ -10,7 +10,7 @@ recursive-include src/python/ essentia/**/*.py *.h *.cpp
 recursive-include src/algorithms *.h *.cpp
 recursive-include src/essentia *.h *.cpp
 recursive-include src/3rdparty *
-recursive-include packaging/ *.sh
+recursive-include packaging/ *.sh *.py
 
 prune src/python/essentia/extractor
 exclude src/python/essentia_extractor 
