@@ -27,20 +27,20 @@ jobs:
             cibw_arch: x86_64
             config: cibuildwheel-tensorflow
             cibw_platform: linux
-          - runner: windows-latest
-            os: windows
-            arch: x86_64
-            cibw_arch: AMD64
-            config: cibuildwheel
-            cibw_platform: windows
-          - runner: windows-11-arm
-            os: windows
-            arch: arm64
-            cibw_arch: ARM64
-            config: cibuildwheel
-            cibw_platform: windows
+          # - runner: windows-latest
+          #   os: windows
+          #   arch: x86_64
+          #   cibw_arch: AMD64
+          #   config: cibuildwheel
+          #   cibw_platform: windows
+          # - runner: windows-11-arm
+          #   os: windows
+          #   arch: arm64
+          #   cibw_arch: ARM64
+          #   config: cibuildwheel
+          #   cibw_platform: windows
 
-          # Disabled to reduce CI minutes while these combinations are unsupported/unreliable.
+          # Disabled combinations (unsupported or currently failing toolchains).
           # - runner: ubuntu-24.04-arm
           #   os: linux
           #   arch: arm64
