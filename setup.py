@@ -42,6 +42,11 @@ class EssentiaBuildExtension(build_ext):
         if var_macos_arm64 == '1':
             macos_arm64_flags = ['--arch=arm64', '--no-msse']
 
+        pkg_config_path = os.getenv('PKG_CONFIG_PATH')
+        pkg_config_flags = []
+        if pkg_config_path:
+            pkg_config_flags = [f'--pkg-config-path={pkg_config_path}']
+
         if var_skip_3rdparty in os.environ and os.environ[var_skip_3rdparty]=='1':
             print('Skipping building static 3rdparty dependencies (%s=1)' %  var_skip_3rdparty)
         else:
@@ -50,10 +55,10 @@ class EssentiaBuildExtension(build_ext):
         if var_only_python in os.environ and os.environ[var_only_python]=='1':
             print('Skipping building the core libessentia library (%s=1)' %  var_only_python)
             subprocess.run([PYTHON,  'waf', 'configure', '--only-python', '--static-dependencies',
-                      '--prefix=tmp'] + macos_arm64_flags, check=True)
+                      '--prefix=tmp'] + macos_arm64_flags + pkg_config_flags, check=True)
         else:
             subprocess.run([PYTHON, 'waf', 'configure', '--build-static', '--static-dependencies',
-                      '--with-python', '--prefix=tmp'] + macos_arm64_flags, check=True)
+                      '--with-python', '--prefix=tmp'] + macos_arm64_flags + pkg_config_flags, check=True)
         subprocess.run([PYTHON, 'waf'], check=True)
         subprocess.run([PYTHON, 'waf', 'install'], check=True)
 
