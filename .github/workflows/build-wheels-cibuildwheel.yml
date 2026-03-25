@@ -44,7 +44,7 @@ jobs:
             arch: x86_64
             cibw_arch: AMD64
             config: cibuildwheel
-            cibw_platform: windows
+            skip_reason: Windows native wheel build is temporarily disabled while waf --only-python depends on a preinstalled essentia pkg-config target.
           - runner: windows-latest
             os: windows
             arch: x86_64
@@ -56,7 +56,7 @@ jobs:
             arch: arm64
             cibw_arch: ARM64
             config: cibuildwheel
-            cibw_platform: windows
+            skip_reason: Windows native wheel build is temporarily disabled while waf --only-python depends on a preinstalled essentia pkg-config target.
           - runner: windows-11-arm
             os: windows
             arch: arm64
