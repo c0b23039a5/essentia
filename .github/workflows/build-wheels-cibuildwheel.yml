@@ -39,9 +39,11 @@ jobs:
           - os: windows-2025
             config: cibuildwheel
             run_build: false
+            cibw_build: "*-win_amd64"
           - os: windows-2025-vs2026
             config: cibuildwheel
             run_build: false
+            cibw_build: "*-win_amd64"
 
     steps:
       - uses: actions/checkout@v6
@@ -63,6 +65,8 @@ jobs:
 
       - name: Show cibuildwheel identifiers (Windows smoke test)
         if: ${{ !matrix.run_build }}
+        env:
+          CIBW_BUILD: ${{ matrix.cibw_build }}
         run: python -m cibuildwheel --print-build-identifiers . --config-file ${{ matrix.config }}.toml
 
       - name: Build wheels
