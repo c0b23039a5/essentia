@@ -37,6 +37,7 @@ enum Edt {
   REAL,
   STRING,
   INTEGER,
+  // Avoid collision with Windows BOOL typedef (from minwindef.h).
   EDT_BOOL,
   STEREOSAMPLE,
   VECTOR_REAL,
