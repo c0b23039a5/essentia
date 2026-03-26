@@ -80,7 +80,7 @@ def options(ctx):
 
 
 def configure(ctx):
-    print('→ configuring the project in ' + ctx.path.abspath())
+    print('-> configuring the project in ' + ctx.path.abspath())
 
     ctx.env.WITH_EXAMPLES        = ctx.options.WITH_EXAMPLES
     ctx.env.WITH_PYTHON          = ctx.options.WITH_PYTHON
@@ -142,11 +142,11 @@ def configure(ctx):
     #ctx.env.CXXFLAGS += [ '-Werror' ]
 
     if ctx.options.MODE == 'debug':
-        print ('→ Building in debug mode')
+        print ('-> Building in debug mode')
         ctx.env.CXXFLAGS += ['-g']
 
     elif ctx.options.MODE == 'release':
-        print ('→ Building in release mode')
+        print ('-> Building in release mode')
         ctx.env.CXXFLAGS += ['-O2']  # '-march=native' ] # '-msse3', '-mfpmath=sse' ]
 
     elif ctx.options.MODE == 'default':
@@ -245,7 +245,7 @@ def configure(ctx):
         """
 
     if ctx.options.CROSS_COMPILE_ANDROID:
-        print ("→ Cross-compiling for Android ARM")
+        print ("-> Cross-compiling for Android ARM")
         # GCC is depricated for Android NDK
         # Use clang with libc++
         #ctx.find_program('arm-linux-androideabi-gcc', var='CC')
@@ -257,7 +257,7 @@ def configure(ctx):
         ctx.env.LINKFLAGS += ['-Wl,-soname,libessentia.so', '-latomic']
 
     if ctx.options.CROSS_COMPILE_IOS:
-        print ("→ Cross-compiling for iOS (ARMv7 and ARM64)")
+        print ("-> Cross-compiling for iOS (ARMv7 and ARM64)")
         ctx.env.CXXFLAGS += ['-arch', 'armv7']
         ctx.env.LINKFLAGS += ['-arch', 'armv7']
         ctx.env.LDFLAGS += ['-arch', 'armv7']
@@ -271,7 +271,7 @@ def configure(ctx):
         ctx.env.CXXFLAGS += ['-fembed-bitcode']
 
     if ctx.options.CROSS_COMPILE_IOS_SIM:
-        print ("→ Cross-compiling for iOS Simulator (i386)")
+        print ("-> Cross-compiling for iOS Simulator (i386)")
         ctx.env.CXXFLAGS += ['-arch', 'i386']
         ctx.env.LINKFLAGS += ['-arch', 'i386']
         ctx.env.LDFLAGS += ['-arch', 'i386']
@@ -285,7 +285,7 @@ def configure(ctx):
 
     # use manually prebuilt dependencies in the case of static examples or mingw cross-build
     if ctx.options.CROSS_COMPILE_MINGW32:
-        print ("→ Cross-compiling for Windows with MinGW")
+        print ("-> Cross-compiling for Windows with MinGW")
         os.environ["PKG_CONFIG_PATH"] = 'packaging/win32_3rdparty/lib/pkgconfig'
 
         # locate MinGW compilers and use them
@@ -304,7 +304,7 @@ def configure(ctx):
         and not ctx.options.CROSS_COMPILE_MINGW32:
         
         if not ctx.env.ONLY_PYTHON:
-            print ("→ Building with static dependencies on Linux/OSX")
+            print ("-> Building with static dependencies on Linux/OSX")
             os.environ["PKG_CONFIG_PATH"] = 'packaging/debian_3rdparty/lib/pkgconfig'
         
         # flags required for linking to static ffmpeg libs
@@ -321,7 +321,7 @@ def adjust(objs, path):
 
 
 def build(ctx):
-    print('→ building from ' + ctx.path.abspath())
+    print('-> building from ' + ctx.path.abspath())
     ctx.recurse('src')
 
     if ctx.env.WITH_CPPTESTS:
