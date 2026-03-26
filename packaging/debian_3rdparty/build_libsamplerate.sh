@@ -8,7 +8,7 @@ cd tmp
 
 echo "Building libsamplerate $LIBSAMPLERATE_VERSION"
 
-curl -SLO http://www.mega-nerd.com/SRC/$LIBSAMPLERATE_VERSION.tar.gz
+curl -SLO https://www.mega-nerd.com/SRC/$LIBSAMPLERATE_VERSION.tar.gz
 tar -xf $LIBSAMPLERATE_VERSION.tar.gz
 cd $LIBSAMPLERATE_VERSION
 

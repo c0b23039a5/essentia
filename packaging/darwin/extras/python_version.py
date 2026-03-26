@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # Copyright (C) 2006-2021  Music Technology Group - Universitat Pompeu Fabra
 #
@@ -19,17 +19,15 @@
 
 
 
-# this script is used in the preinstall stage to find out whether python2.5 is
-# installed
+# This script is used in the preinstall stage to validate that the interpreter
+# version is supported by current packaging.
 
 import sys
 
-def isCorrectVersion() :
-    version = sys.version.split()[0].split('.')
-    return int(version[0]) >= 2 and int(version[1]) >= 5
+
+def is_supported_version() -> bool:
+    return sys.version_info >= (3, 9)
 
 
 if __name__ == '__main__':
-    if isCorrectVersion():
-        sys.exit(0);
-    else: sys.exit(1);
+    sys.exit(0 if is_supported_version() else 1)

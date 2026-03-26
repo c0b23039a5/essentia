@@ -9,7 +9,7 @@ cd tmp
 echo "Building lame $LAME_VERSION"
 
 #!/usr/bin/env bash
-curl -SL -o lame-$LAME_VERSION.tar.gz "http://downloads.sourceforge.net/project/lame/lame/$LAME_VERSION/lame-$LAME_VERSION.tar.gz?r=https%3A%2F%2Fsourceforge.net%2Fprojects%2Flame%2F&ts=1476009914&use_mirror=ufpr"
+curl -SL -o lame-$LAME_VERSION.tar.gz "https://downloads.sourceforge.net/project/lame/lame/$LAME_VERSION/lame-$LAME_VERSION.tar.gz"
 tar -xf  lame-$LAME_VERSION.tar.gz
 cd lame-$LAME_VERSION
 CPPFLAGS=-fPIC ./configure --prefix=$PREFIX \
