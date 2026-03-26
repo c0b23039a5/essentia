@@ -1,3 +1,6 @@
+[tool.cibuildwheel]
+enable = ["cpython-freethreading"]
+
 [tool.cibuildwheel.linux]
 
 manylinux-x86_64-image = "mtgupf/essentia-builds:manylinux2014_x86_64"
@@ -5,7 +8,7 @@ manylinux-x86_64-image = "mtgupf/essentia-builds:manylinux2014_x86_64"
 # Only support x86_64 for essentia-tensorflow.
 build = "cp**-manylinux_x86_64"
 
-skip = ["pp*", "*-musllinux*", "*i686", "*cp36*", "*cp37*", "*cp38*", "*cp313t*", "*cp314t*"]
+skip = ["*-musllinux*", "*i686", "*cp38*", "*cp3??t*"]
 
 environment = { PROJECT_NAME="essentia-tensorflow", ESSENTIA_PROJECT_NAME="${PROJECT_NAME}", ESSENTIA_WHEEL_SKIP_3RDPARTY=1, ESSENTIA_WHEEL_ONLY_PYTHON=1 }
 
@@ -24,7 +27,7 @@ test-command = "python -c 'import essentia; import essentia.standard; import ess
 
 [tool.cibuildwheel.macos]
 
-skip = ["pp*", "*cp36*", "*cp37*", "*cp38*", "*cp313t*", "*cp314t*"]
+skip = ["*cp38*", "*cp3??t*"]
 
 environment = { PROJECT_NAME="essentia-tensorflow", ESSENTIA_PROJECT_NAME="${PROJECT_NAME}", ESSENTIA_WHEEL_SKIP_3RDPARTY=1, ESSENTIA_WHEEL_ONLY_PYTHON=0, MACOSX_DEPLOYMENT_TARGET=26.0, PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:/usr/local/share/pkgconfig:/opt/homebrew/lib/pkgconfig:/opt/homebrew/share/pkgconfig" }
 
@@ -61,7 +64,7 @@ before-all = [
 [[tool.cibuildwheel.overrides]]
 select = "*macosx_arm64*"
 
-skip = ["pp*", "*cp36*", "*cp37*", "*cp38*", "*cp313t*", "*cp314t*"]
+skip = ["*cp38*", "*cp3??t*"]
 
 environment = { PROJECT_NAME="essentia-tensorflow", ESSENTIA_PROJECT_NAME="${PROJECT_NAME}", ESSENTIA_WHEEL_SKIP_3RDPARTY=1, ESSENTIA_WHEEL_ONLY_PYTHON=0, ESSENTIA_MACOSX_ARM64=1, MACOSX_DEPLOYMENT_TARGET=15.2, PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:/usr/local/share/pkgconfig:/opt/homebrew/lib/pkgconfig:/opt/homebrew/share/pkgconfig" }
 
