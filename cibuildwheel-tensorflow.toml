@@ -26,7 +26,7 @@ test-command = "python -c 'import essentia; import essentia.standard; import ess
 
 skip = ["pp*", "*cp36*", "*cp37*", "*cp38*"]
 
-environment = { PROJECT_NAME="essentia-tensorflow", ESSENTIA_PROJECT_NAME="${PROJECT_NAME}", ESSENTIA_WHEEL_SKIP_3RDPARTY=1, ESSENTIA_WHEEL_ONLY_PYTHON=0, MACOSX_DEPLOYMENT_TARGET=14.2, PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:/usr/local/share/pkgconfig:/opt/homebrew/lib/pkgconfig:/opt/homebrew/share/pkgconfig" }
+environment = { PROJECT_NAME="essentia-tensorflow", ESSENTIA_PROJECT_NAME="${PROJECT_NAME}", ESSENTIA_WHEEL_SKIP_3RDPARTY=1, ESSENTIA_WHEEL_ONLY_PYTHON=0, MACOSX_DEPLOYMENT_TARGET=26.0, PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:/usr/local/share/pkgconfig:/opt/homebrew/lib/pkgconfig:/opt/homebrew/share/pkgconfig" }
 
 before-all = [
   "brew install pkg-config gcc readline sqlite gdbm freetype libpng",
@@ -52,7 +52,9 @@ before-all = [
   "sed 's/^name *= *\"essentia\"$/name = \"essentia-tensorflow\"/' pyproject.toml > pyproject.toml.patched && mv pyproject.toml.patched pyproject.toml"
 ]
 
-# FIXME Temporarily disable testing on macos-13 runner. The wheel is tagged as macosx_14_2 due to the Tensorflow dependency, so it can't be installed by pip ("not a supported wheel on this platform").
+# FIXME Temporarily disable testing on old macOS runners. The wheel target is
+# constrained by Homebrew dylib minimum versions from the macOS-26 Intel image,
+# so pip on older runners can reject the artifact as unsupported.
 #test-command = "python -c 'import essentia; import essentia.standard; import essentia.streaming; from essentia.standard import MonoLoader, MetadataReader, YamlInput, Chromaprinter, TensorflowPredict'"
 
 
