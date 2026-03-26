@@ -254,10 +254,10 @@ Real NoveltyCurveFixedBpmEstimator::mainPeaksMean(const vector<Real>& positions,
     int startpos = int(max(Real(0), Real(peaksPositions[i]-length)));
     int endpos = int(min(Real(size), Real(peaksPositions[i]+length+0.5)));
     // find out which peaks are closer to the corresponding start/end positions
-    Real minDistFromStart = numeric_limits<int>::max();
-    Real minDistFromEnd = numeric_limits<int>::max();
-    int startIdx = numeric_limits<int>::max();
-    int endIdx = numeric_limits<int>::max();
+    Real minDistFromStart = (numeric_limits<int>::max)();
+    Real minDistFromEnd = (numeric_limits<int>::max)();
+    int startIdx = (numeric_limits<int>::max)();
+    int endIdx = (numeric_limits<int>::max)();
     for (int j=0; j<nPeaks; j++) {
       Real dist = fabs(peaksPositions[j] - startpos);
       if (dist<minDistFromStart) {

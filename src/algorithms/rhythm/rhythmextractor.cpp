@@ -98,7 +98,7 @@ void RhythmExtractor::createInnerNetwork() {
     _onsetHfc      = factory.create("OnsetDetection");
     _onsetComplex  = factory.create("OnsetDetection");
     _derivative    = factory.create("Derivative");
-    _max           = factory.create("Clipper", "min", 0.0, "max", numeric_limits<Real>::max());
+    _max           = factory.create("Clipper", "min", 0.0, "max", (numeric_limits<Real>::max)());
 
     // connect algos:
     _windowing->output("frame")              >>  _fft->input("frame");
