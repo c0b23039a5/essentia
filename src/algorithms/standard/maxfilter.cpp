@@ -67,7 +67,7 @@ void MaxFilter::compute() {
   // initially fill buffer
   if(!_filledBuffer) {
         
-    if(_bufferFillIdx == _causal ? 0 : _halfWidth) {
+    if(_bufferFillIdx == (_causal ? 0 : _halfWidth)) {
       _curMax = array[0];
       // We initiate the value here because we need to 
       // pad with an array value (especially in non causal 
