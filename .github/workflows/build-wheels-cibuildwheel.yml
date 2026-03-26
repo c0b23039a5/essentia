@@ -49,6 +49,12 @@ jobs:
         with:
           python-version: "3.14"
 
+      - name: Initialize MSVC developer command prompt
+        if: ${{ startsWith(matrix.os, 'windows') }}
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
       - name: Install cibuildwheel
         run: python -m pip install cibuildwheel==3.4.0
 
