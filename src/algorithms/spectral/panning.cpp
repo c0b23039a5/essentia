@@ -128,7 +128,7 @@ void Panning::compute() {
   if (spectrumLeft.empty() || spectrumRight.empty()) {
     throw EssentiaException("Panning: input spectrum empty");
   }
-  Real minReal = numeric_limits<Real>::min();
+  Real minReal = (numeric_limits<Real>::min)();
   int specSize = (int) spectrumLeft.size();
   Real fftSize = 2 *_panningBins;
   Real average = _averageFrames ? 1./Real(_averageFrames) : 0;
