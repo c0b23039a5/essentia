@@ -54,7 +54,7 @@ vector<Real> HarmonicBpm::findHarmonicBpms(const vector<Real>& bpms) {
   harmonicBpms.reserve(bpms.size());
   harmonicRatios.reserve(bpms.size());
 
-  Real mingcd = std::numeric_limits<int>::max();
+  Real mingcd = (std::numeric_limits<int>::max)();
 
   // Discard BPM values with GCD below the threshold.
   for (int i=0; i<int(bpms.size()); i++) {
@@ -74,7 +74,7 @@ vector<Real> HarmonicBpm::findHarmonicBpms(const vector<Real>& bpms) {
 
   while (i<int(harmonicBpms.size())) {
     Real prevBpm = harmonicBpms[i];
-    Real minError = std::numeric_limits<int>::max();
+    Real minError = (std::numeric_limits<int>::max)();
     Real bestBpm;
 
     // Select the best candidate among aproximately the same (within tolerance) BPMs.

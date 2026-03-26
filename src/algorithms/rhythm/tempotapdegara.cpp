@@ -256,7 +256,7 @@ void TempoTapDegara::decodeBeats(map<Real,
   vector<vector<int> > stateBacktracking(_numberStates, vector<int>(_numberFrames));
 
   // HMM cost for each state for the current time
-  vector<Real> cost(_numberStates, numeric_limits<Real>::max());
+  vector<Real> cost(_numberStates, (numeric_limits<Real>::max)());
   cost[0] = 0;
   vector<Real> costOld = cost;
   vector<Real> diff(_numberStates);
@@ -272,7 +272,7 @@ void TempoTapDegara::decodeBeats(map<Real,
     int bestState = argmin(diff);
     Real bestPath = diff[bestState];
 
-    if (bestPath==numeric_limits<Real>::max()) {
+    if (bestPath==(numeric_limits<Real>::max)()) {
       bestState = -1;
     }
 

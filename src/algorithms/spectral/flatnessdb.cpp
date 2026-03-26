@@ -59,6 +59,6 @@ void FlatnessDB::compute() {
     flatnessDB = 1.0; // default value chosen for silent signals
   }
   else {
-    flatnessDB = std::min( Real(lin2db(flatness)/-60.0), Real(1.0));
+    flatnessDB = (std::min)( Real(lin2db(flatness)/-60.0), Real(1.0));
   }
 }

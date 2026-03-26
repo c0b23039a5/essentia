@@ -19,6 +19,7 @@
 
 #include "stochasticmodelanal.h"
 #include "essentiamath.h"
+#include <algorithm>
 
 using namespace essentia;
 using namespace standard;
@@ -44,7 +45,7 @@ void StochasticModelAnal::configure() {
 
   // resample for stochastic envelope using FFT
   _hN = int(_fftSize/2.) + 1;
-  _stocf = std::max(_stocf, 3.f / _hN); //  limits  Stochastic decimation factor too small
+  _stocf = (std::max)(_stocf, 3.f / _hN); //  limits  Stochastic decimation factor too small
 
   _stocSize = int (_fftSize * _stocf / 2.);
   _stocSize += _stocSize % 2;
@@ -101,7 +102,7 @@ void StochasticModelAnal::getSpecEnvelope(const std::vector<std::complex<Real> >
   {
     // compute fft abs
     mag =  sqrt( fftRes[i].real() * fftRes[i].real() +  fftRes[i].imag() * fftRes[i].imag());
-    magdB = std::max(-200., 20. * log10( mag + 1e-10));
+    magdB = (std::max)(-200., 20. * log10( mag + 1e-10));
     magResDB.push_back(magdB);
   }
 }

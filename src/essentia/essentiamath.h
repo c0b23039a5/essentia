@@ -1247,7 +1247,7 @@ template <typename T> T pearsonCorrelationCoefficient(const std::vector<T>& x, c
   // Numerical error can yield results slightly outside the analytical range [-1, 1].
   // Clipping the output is a cheap way to mantain this contrain.
   // Seen in https://github.com/numpy/numpy/blob/v1.15.0/numpy/lib/function_base.py#L2403-L2406
-  return std::max(std::min(corr, (T)1.0), (T)-1.0);
+  return (std::max)((std::min)(corr, (T)1.0), (T)-1.0);
 }
 
 

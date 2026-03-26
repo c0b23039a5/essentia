@@ -20,6 +20,7 @@
 #include "resamplefft.h"
 #include "essentiamath.h"
 #include <essentia/utils/synth_utils.h>
+#include <algorithm>
 
 using namespace essentia;
 using namespace standard;
@@ -61,7 +62,7 @@ void ResampleFFT::compute() {
   int hNout = (sizeOut/2.)+1;
   initializeFFT(fftout, hNout);
   // fill positive spectrum to hN (upsampling zeros will be padded) or hNout (downsampling and high frequencies will be removed)
-  for (int i = 0; i < std::min(hN, hNout); ++i)
+  for (int i = 0; i < (std::min)(hN, hNout); ++i)
   {
     // positive spectrums
     fftout[i].real( fftin[i].real());

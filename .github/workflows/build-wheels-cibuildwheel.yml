@@ -13,10 +13,26 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Build wheels on Linux and macOS to keep both cibuildwheel
-        # configuration paths validated in CI.
-        os: [ubuntu-latest, macos-26, macos-26-intel]
-        config: [cibuildwheel, cibuildwheel-tensorflow]
+        include:
+          # Build wheels on Linux and macOS to keep both cibuildwheel
+          # configuration paths validated in CI.
+          - os: ubuntu-latest
+            config: cibuildwheel
+          - os: ubuntu-latest
+            config: cibuildwheel-tensorflow
+          - os: macos-26
+            config: cibuildwheel
+          - os: macos-26
+            config: cibuildwheel-tensorflow
+          - os: macos-26-intel
+            config: cibuildwheel
+          - os: macos-26-intel
+            config: cibuildwheel-tensorflow
+          # Build wheels on both Windows images too.
+          - os: windows-2025
+            config: cibuildwheel
+          - os: windows-2025-vs2026
+            config: cibuildwheel
 
     steps:
       - uses: actions/checkout@v6
@@ -33,13 +49,89 @@ jobs:
         with:
           python-version: "3.14"
 
+      - name: Initialize MSVC developer command prompt
+        if: ${{ startsWith(matrix.os, 'windows') }}
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
       - name: Install cibuildwheel
         run: python -m pip install cibuildwheel==3.4.0
 
+
+      - name: Prepare Windows pkg-config dependencies
+        if: ${{ startsWith(matrix.os, 'windows') }}
+        shell: pwsh
+        run: |
+          $eigenVersion = '3.3.7'
+          $repo = (Get-Location).Path
+          $eigenArchive = Join-Path $env:RUNNER_TEMP "eigen-$eigenVersion.tar.gz"
+          $eigenExtractRoot = Join-Path $repo 'packaging/win32_3rdparty/eigen-src'
+          $eigenSourceDir = Join-Path $eigenExtractRoot "eigen-$eigenVersion"
+
+          curl.exe -fsSL -o $eigenArchive "https://gitlab.com/libeigen/eigen/-/archive/$eigenVersion/eigen-$eigenVersion.tar.gz"
+          if (Test-Path $eigenExtractRoot) { Remove-Item -Recurse -Force $eigenExtractRoot }
+          New-Item -ItemType Directory -Force -Path $eigenExtractRoot | Out-Null
+          tar -xf $eigenArchive -C $eigenExtractRoot
+
+          if (-not (Test-Path (Join-Path $eigenSourceDir 'unsupported/Eigen/CXX11/Tensor'))) {
+            throw 'Downloaded Eigen does not contain unsupported/Eigen/CXX11/Tensor.'
+          }
+
+          $eigenSourceDirPosix = $eigenSourceDir -replace '\\', '/'
+
+          $pcDir = Join-Path $env:RUNNER_TEMP 'essentia-pkgconfig'
+          New-Item -ItemType Directory -Force -Path $pcDir | Out-Null
+
+          @(
+            'Name: eigen3',
+            'Description: Eigen3',
+            'Version: 3.3.7',
+            "Cflags: -I$eigenSourceDirPosix"
+          ) | Out-File -FilePath (Join-Path $pcDir 'eigen3.pc') -Encoding ascii
+
+          $pkgConfigPaths = @(
+            $pcDir,
+            (Join-Path $repo 'packaging/win32_3rdparty/fftw-3.3.3/lib/pkgconfig'),
+            (Join-Path $repo 'packaging/win32_3rdparty/libsamplerate-0.1.8/lib/pkgconfig'),
+            (Join-Path $repo 'packaging/win32_3rdparty/taglib-1.9.1/lib/pkgconfig'),
+            (Join-Path $repo 'packaging/win32_3rdparty/libav-0.8.9/lib/pkgconfig'),
+            (Join-Path $repo 'packaging/win32_3rdparty/yaml-0.1.5/lib/pkgconfig')
+          ) -join ';'
+
+          $windowsIncludePaths = @(
+            (Join-Path $repo 'packaging/win32_3rdparty/fftw-3.3.3/include'),
+            (Join-Path $repo 'packaging/win32_3rdparty/libsamplerate-0.1.8/include'),
+            (Join-Path $repo 'packaging/win32_3rdparty/taglib-1.9.1/include'),
+            (Join-Path $repo 'packaging/win32_3rdparty/taglib-1.9.1/include/taglib'),
+            (Join-Path $repo 'packaging/win32_3rdparty/libav-0.8.9/include'),
+            (Join-Path $repo 'packaging/win32_3rdparty/yaml-0.1.5/include')
+          ) -join ';'
+
+          "ESSENTIA_WINDOWS_PKG_CONFIG_PATH=$pkgConfigPaths" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "ESSENTIA_WINDOWS_EIGEN_INCLUDE=$eigenSourceDir" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "ESSENTIA_WINDOWS_INCLUDE_PATHS=$windowsIncludePaths" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "ESSENTIA_WINDOWS_PKG_CONFIG_EXE=$repo/packaging/win32_3rdparty/pkgconfig/bin/pkg-config.exe" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Build wheels (Windows amd64 only)
+        id: build_windows
+        if: ${{ startsWith(matrix.os, 'windows') }}
+        env:
+          CIBW_BUILD: "cp312-win_amd64 cp313-win_amd64 cp314-win_amd64"
+          ESSENTIA_WHEEL_SKIP_3RDPARTY: "1"
+          PKG_CONFIG: ${{ env.ESSENTIA_WINDOWS_PKG_CONFIG_EXE }}
+          PKG_CONFIG_PATH: ${{ env.ESSENTIA_WINDOWS_PKG_CONFIG_PATH }}
+          INCLUDE: ${{ env.ESSENTIA_WINDOWS_INCLUDE_PATHS }};${{ env.ESSENTIA_WINDOWS_EIGEN_INCLUDE }};${{ env.INCLUDE }}
+          CXXFLAGS: /I"${{ env.ESSENTIA_WINDOWS_EIGEN_INCLUDE }}"
+          CFLAGS: /I"${{ env.ESSENTIA_WINDOWS_EIGEN_INCLUDE }}"
+        run: python -m cibuildwheel . --output-dir wheelhouse --config-file ${{ matrix.config }}.toml
+
       - name: Build wheels
+        if: ${{ !startsWith(matrix.os, 'windows') }}
         run: python -m cibuildwheel . --output-dir wheelhouse --config-file ${{ matrix.config }}.toml
 
       - uses: actions/upload-artifact@v6
+        if: ${{ !startsWith(matrix.os, 'windows') || steps.build_windows.outcome == 'success' }}
         with:
           path: ./wheelhouse/*.whl
           name: artifact-${{ matrix.os }}-${{ matrix.config }}

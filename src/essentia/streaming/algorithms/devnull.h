@@ -21,6 +21,7 @@
 #define ESSENTIA_DEVNULL_H
 
 #include "../streamingalgorithm.h"
+#include <algorithm>
 
 namespace essentia {
 namespace streaming {
@@ -48,9 +49,9 @@ class DevNull : public Algorithm {
   void declareParameters() {}
 
   AlgorithmStatus process() {
-    int nframes = std::min(_frames.available(),
+    int nframes = (std::min)(_frames.available(),
                            _frames.buffer().bufferInfo().maxContiguousElements);
-    nframes = std::max(nframes, 1); // in case phantomsize == 0
+    nframes = (std::max)(nframes, 1); // in case phantomsize == 0
 
     EXEC_DEBUG("Consuming " << nframes << " tokens");
 

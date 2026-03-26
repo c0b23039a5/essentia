@@ -21,6 +21,7 @@
 #define ESSENTIA_ROGUEVECTOR_H
 
 #include <vector>
+#include <algorithm>
 #include "types.h"
 
 namespace essentia {
@@ -30,16 +31,17 @@ template <typename T>
 class RogueVector : public std::vector<T> {
  protected:
   bool _ownsMemory;
+  T* _externalData;
 
  public:
-  RogueVector(T* tab = 0, size_t size = 0) : std::vector<T>(), _ownsMemory(false) {
+  RogueVector(T* tab = 0, size_t size = 0) : std::vector<T>(), _ownsMemory(false), _externalData(0) {
     setData(tab);
     setSize(size);
   }
 
-  RogueVector(uint size, T value) : std::vector<T>(size, value), _ownsMemory(true) {}
+  RogueVector(uint size, T value) : std::vector<T>(size, value), _ownsMemory(true), _externalData(0) {}
 
-  RogueVector(const RogueVector<T>& v) : std::vector<T>(), _ownsMemory(false) {
+  RogueVector(const RogueVector<T>& v) : std::vector<T>(), _ownsMemory(false), _externalData(0) {
     setData(const_cast<T*>(v.data()));
     setSize(v.size());
   }
@@ -89,13 +91,18 @@ void RogueVector<T>::setSize(size_t size) {
 
 template <typename T>
 void RogueVector<T>::setData(T* data) {
-  this->_Myfirst() = data;
+  _externalData = data;
+  if (_externalData && !this->empty()) {
+    std::copy_n(_externalData, this->size(), this->begin());
+  }
 }
 
 template <typename T>
 void RogueVector<T>::setSize(size_t size) {
-  this->_Mylast() = this->_Myfirst() + size;
-  this->_Myend() = this->_Myfirst() + size;
+  this->resize(size);
+  if (_externalData && size > 0) {
+    std::copy_n(_externalData, size, this->begin());
+  }
 }
 
 #endif

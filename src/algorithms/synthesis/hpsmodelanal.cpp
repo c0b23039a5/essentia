@@ -20,6 +20,7 @@
 #include "hpsmodelanal.h"
 #include "essentiamath.h"
 #include <essentia/utils/synth_utils.h>
+#include <algorithm>
 
 using namespace essentia;
 using namespace standard;
@@ -56,7 +57,7 @@ void HpsModelAnal::configure() {
                              
 );
 
-  int subtrFFTSize = std::min(512, 4*parameter("hopSize").toInt());  // make sure the FFT size is at least twice the hopsize
+  int subtrFFTSize = (std::min)(512, 4*parameter("hopSize").toInt());  // make sure the FFT size is at least twice the hopsize
   _sineSubtraction->configure( "sampleRate", parameter("sampleRate").toReal(),
                               "fftSize", subtrFFTSize,
                               "hopSize", parameter("hopSize").toInt()
@@ -141,4 +142,3 @@ void HpsModelAnal::updateStocInFrame(const std::vector<Real> frameIn, std::vecto
     }
   }
 }
-

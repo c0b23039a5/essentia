@@ -20,6 +20,7 @@
 #include "sprmodelanal.h"
 #include "essentiamath.h"
 #include <essentia/utils/synth_utils.h>
+#include <algorithm>
 
 using namespace essentia;
 using namespace standard;
@@ -51,7 +52,7 @@ void SprModelAnal::configure() {
                               "freqDevSlope",  parameter("freqDevSlope").toReal()
                               );
 
-  int subtrFFTSize = std::min(parameter("fftSize").toInt()/4, 4*parameter("hopSize").toInt());  // make sure the FFT size i
+  int subtrFFTSize = (std::min)(parameter("fftSize").toInt()/4, 4*parameter("hopSize").toInt());  // make sure the FFT size i
   _sineSubtraction->configure( "sampleRate", parameter("sampleRate").toReal(),
                               "fftSize", subtrFFTSize,
                               "hopSize", parameter("hopSize").toInt()

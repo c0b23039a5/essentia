@@ -77,7 +77,7 @@ void MinToTotal::finalProduce() {
 void MinToTotal::reset() {
   AccumulatorAlgorithm::reset();
   _size = 0;
-  _min = std::numeric_limits<Real>::max();
+  _min = (std::numeric_limits<Real>::max)();
   _minIdx = 0;
 }
 

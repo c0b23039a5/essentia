@@ -69,7 +69,7 @@ void SpectralWhitening::compute() {
   }
 
   // get max peak
-  Real maxAmp = -numeric_limits<Real>::max();
+  Real maxAmp = -(numeric_limits<Real>::max)();
   for (int i=0; i<nPeaks; ++i) {
     if (frequencies[i] <= _maxFreq) {
       maxAmp = max(maxAmp, magnitudesdB[i]);

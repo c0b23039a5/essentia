@@ -72,7 +72,7 @@ void OddToEvenHarmonicEnergyRatio::compute() {
   }
 
   if (even_energy == 0.0 && odd_energy > 0.01) {
-     // oddtoevenharmonicenergyratio = numeric_limits<Real>::max();
+     // oddtoevenharmonicenergyratio = (numeric_limits<Real>::max)();
      oddtoevenharmonicenergyratio = maxRatio;
   }
   else if (even_energy == 0.0 && odd_energy < 0.01 ) {

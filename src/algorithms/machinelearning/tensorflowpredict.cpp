@@ -327,7 +327,7 @@ TF_Tensor* TensorflowPredict::TensorToTF(
   }
 
   memcpy(tensorData, tensorIn.data(),
-         std::min(tensorIn.size() * sizeof(Real),
+         (std::min)(tensorIn.size() * sizeof(Real),
                   TF_TensorByteSize(tensorOut)));
 
   return tensorOut;

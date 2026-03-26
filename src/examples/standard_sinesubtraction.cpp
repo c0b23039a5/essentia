@@ -80,7 +80,7 @@ int main(int argc, char* argv[]) {
                             
 
   
-  int subtrFFTSize = std::min(framesize/4, 4*hopsize);  // make sure the FFT size 
+  int subtrFFTSize = (std::min)(framesize/4, 4*hopsize);  // make sure the FFT size 
   Algorithm* sinesubtraction = factory.create("SineSubtraction",
                               "sampleRate", sr,
                               "fftSize", subtrFFTSize,

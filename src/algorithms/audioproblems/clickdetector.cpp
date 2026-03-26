@@ -121,7 +121,7 @@ void ClickDetector::compute() {
 
   Real robustPowerValue = robustPower(e, _powerEstimationThld) * _detectionThld;
 
-  Real threshold = std::max(robustPowerValue, _silenceThld);
+  Real threshold = (std::max)(robustPowerValue, _silenceThld);
 
   std::vector<uint> detections;
   for (uint i = _order; i < eMF.size() - _order; i++)

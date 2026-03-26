@@ -62,6 +62,9 @@ class EssentiaBuildExtension(build_ext):
 
         if var_skip_3rdparty in os.environ and os.environ[var_skip_3rdparty]=='1':
             print('Skipping building static 3rdparty dependencies (%s=1)' %  var_skip_3rdparty)
+        elif sys.platform.startswith('win'):
+            # The helper script is Debian-specific shell code and cannot be executed directly on Windows.
+            print('Skipping building static 3rdparty dependencies on Windows (packaging/build_3rdparty_static_debian.sh is Linux-only)')
         else:
             subprocess.run('./packaging/build_3rdparty_static_debian.sh', check=True)
 

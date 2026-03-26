@@ -85,7 +85,7 @@ void TriangularBarkBands::calculateFilterCoefficients() {
             float lof = binbarks[j] - f_bark_mid - 0.5;
             float hif = binbarks[j] - f_bark_mid + 0.5;
             
-            double coeff = std::min((float)0, min((float)hif, (float)-2.5*lof)/width);
+            double coeff = (std::min)((float)0, min((float)hif, (float)-2.5*lof)/width);
             
             _filterCoefficients[i][j] = pow(10, coeff);
         }

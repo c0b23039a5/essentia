@@ -45,7 +45,7 @@ Real maxBpm = 560; // leave it high unless you are sure about it
 Real minBpm = 30;
 
 void normalizeToMax(vector<Real>& array) {
-  Real maxValue = -1.0*std::numeric_limits<int>::max();
+  Real maxValue = -1.0*(std::numeric_limits<int>::max)();
   for (int i=0; i<int(array.size()); i++) {
     if (fabs(array[i]) > maxValue) maxValue = fabs(array[i]);
   }

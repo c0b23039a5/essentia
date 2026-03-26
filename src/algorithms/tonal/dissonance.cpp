@@ -19,6 +19,7 @@
 
 #include "dissonance.h"
 #include "essentiamath.h"
+#include <algorithm>
 
 using namespace std;
 using namespace essentia;
@@ -82,7 +83,7 @@ Real consonance(Real f1, Real f2) {
   // definition of critical bandwidth between two partials of a complex tone:
   Real cbwf1 = barkCriticalBandwidth(hz2bark(f1));
   Real cbwf2 = barkCriticalBandwidth(hz2bark(f2));
-  Real cbw = std::min(cbwf1, cbwf2 );
+  Real cbw = (std::min)(cbwf1, cbwf2 );
   return plompLevelt(fabs(f2-f1)/cbw);
 }
 

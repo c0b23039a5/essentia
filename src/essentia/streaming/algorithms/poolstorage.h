@@ -22,6 +22,7 @@
 
 #include "../streamingalgorithm.h"
 #include "../../pool.h"
+#include <algorithm>
 
 namespace essentia {
 namespace streaming {
@@ -68,9 +69,9 @@ class PoolStorage : public PoolStorageBase {
   AlgorithmStatus process() {
     EXEC_DEBUG("process(), for desc: " << _descriptorName);
 
-    int ntokens = std::min(_descriptor.available(),
+    int ntokens = (std::min)(_descriptor.available(),
                            _descriptor.buffer().bufferInfo().maxContiguousElements);
-    ntokens = std::max(ntokens, 1);
+    ntokens = (std::max)(ntokens, 1);
 
     // for singleFrames buffer usage, the size of the phantom zone may be zero,
     // thus need to  +1. And we're still on the safe side, see acquireForRead (phantombuffer_impl.cpp)

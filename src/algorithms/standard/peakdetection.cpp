@@ -79,7 +79,7 @@ void PeakDetection::compute() {
 
   // we want to round up to the next integer instead of simple truncation,
   // otherwise the peak frequency at i can be lower than _minPos
-  int i = std::max(0, (int) ceil(_minPos / scale));
+  int i = (std::max)(0, (int) ceil(_minPos / scale));
 
   // first check the boundaries:
   if (i+1 < size && array[i] > array[i+1]) {
@@ -232,7 +232,7 @@ void PeakDetection::compute() {
 
 
   // we only want this many peaks
-  size_t nWantedPeaks = std::min((size_t)_maxPeaks, peaks.size());
+  size_t nWantedPeaks = (std::min)((size_t)_maxPeaks, peaks.size());
 
   peakPosition.resize(nWantedPeaks);
   peakValue.resize(nWantedPeaks);
