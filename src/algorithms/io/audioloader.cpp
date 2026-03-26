@@ -373,8 +373,8 @@ void AudioLoader::flushPacket() {
         int outPlaneSize = av_samples_get_buffer_size(NULL, _nChannels, inputSamples, AV_SAMPLE_FMT_FLT, 1);
         if (outPlaneSize > 0) {
             if (_audioCtx->sample_fmt == AV_SAMPLE_FMT_FLT) {
-                memcpy(_buffer, _decodedFrame->data[0], std::min(outPlaneSize, FFMPEG_BUFFER_SIZE));
-                _dataSize = std::min(outPlaneSize, FFMPEG_BUFFER_SIZE);
+                memcpy(_buffer, _decodedFrame->data[0], (std::min)(outPlaneSize, FFMPEG_BUFFER_SIZE));
+                _dataSize = (std::min)(outPlaneSize, FFMPEG_BUFFER_SIZE);
             } else {
                 float* outBuff = (float*)_buffer;
                 int samplesWritten = swr_convert(_convertCtxAv,
@@ -383,7 +383,7 @@ void AudioLoader::flushPacket() {
                                                  (const uint8_t**)_decodedFrame->data,
                                                  inputSamples);
                 if (samplesWritten > 0) {
-                    _dataSize = std::min(samplesWritten * _nChannels * av_get_bytes_per_sample(AV_SAMPLE_FMT_FLT),
+                    _dataSize = (std::min)(samplesWritten * _nChannels * av_get_bytes_per_sample(AV_SAMPLE_FMT_FLT),
                                          FFMPEG_BUFFER_SIZE);
                 }
             }
@@ -454,7 +454,7 @@ int AudioLoader::decodePacket() {
     // Perform conversion if needed
     if (_audioCtx->sample_fmt == AV_SAMPLE_FMT_FLT) {
         // direct copy - frame data is interleaved in data[0] for packed formats
-        memcpy(outBuff, _decodedFrame->data[0], std::min(outPlaneSize, FFMPEG_BUFFER_SIZE));
+        memcpy(outBuff, _decodedFrame->data[0], (std::min)(outPlaneSize, FFMPEG_BUFFER_SIZE));
     } else {
         // Use swr_convert; use pointer to uint8_t* for API compatibility
         int samplesWritten = swr_convert(_convertCtxAv,
@@ -471,7 +471,7 @@ int AudioLoader::decodePacket() {
     }
 
     // commit produced bytes
-    _dataSize = std::min(outPlaneSize, FFMPEG_BUFFER_SIZE);
+    _dataSize = (std::min)(outPlaneSize, FFMPEG_BUFFER_SIZE);
 
     // Return number of bytes logically consumed from the packet.
     // With modern API we don't need to tell caller how many bytes consumed;

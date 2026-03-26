@@ -50,8 +50,8 @@ void CrossCorrelation::compute() {
 
   int wantedMinLag = parameter("minLag").toInt();
   int wantedMaxLag = parameter("maxLag").toInt();
-  int minLag = std::max(wantedMinLag, -((int)signal_y.size() - 1));
-  int maxLag = std::min(wantedMaxLag, (int)signal_x.size() - 1);
+  int minLag = (std::max)(wantedMinLag, -((int)signal_y.size() - 1));
+  int maxLag = (std::min)(wantedMaxLag, (int)signal_x.size() - 1);
 
   int size = wantedMaxLag - wantedMinLag + 1;
 
@@ -64,8 +64,8 @@ void CrossCorrelation::compute() {
   }
 
   for (int lag = minLag; lag <= maxLag; lag++) {
-    int i_start = std::max(0,lag);
-    int i_end = std::min((int)signal_x.size(),(int)signal_y.size() + lag);
+    int i_start = (std::max)(0,lag);
+    int i_end = (std::min)((int)signal_x.size(),(int)signal_y.size() + lag);
     Real corr = 0;
 
     for (int i=i_start; i<i_end; i++) {

@@ -91,7 +91,7 @@ void SpectralContrast::compute() {
     throw EssentiaException(msg);
   }
   //substitute minReal for a static value that is the same in all architectures. i.e.: 1e-30
-  Real minReal = 1e-30; //numeric_limits<Real>::min();
+  Real minReal = 1e-30; //(numeric_limits<Real>::min)();
 
   // get the outputs
   vector<Real>& sc = _spectralcontrast.get();

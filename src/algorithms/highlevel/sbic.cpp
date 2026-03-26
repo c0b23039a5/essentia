@@ -138,7 +138,7 @@ int SBic::bicChangeSearch(const Array2D<Real>& matrix, int inc, int current) con
   // penalty = 0.5*(3*nFeatures + nFeatures*nFeatures);
 
   penalty = _cpw * _cp * log(Real(nFrames));
-  dmin = numeric_limits<Real>::max();
+  dmin = (numeric_limits<Real>::max)();
 
   // log-determinant for the entire window
   s = logDet(matrix);

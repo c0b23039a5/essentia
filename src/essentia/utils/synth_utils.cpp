@@ -42,7 +42,7 @@ void scaleAudioVector(std::vector<Real> &buffer, const Real scale)
 
 /*void mixAudioVectors(const std::vector<Real> ina, const std::vector<Real> inb, const Real gaina, const Real gainb, std::vector<Real> &out)
 {
-  int outsize = std::max(ina.size(), inb.size());
+  int outsize = (std::max)(ina.size(), inb.size());
   out.resize(outsize);
   std::fill(out.begin(), out.end(), 0.);
   for (int i=0; i<outsize; ++i )

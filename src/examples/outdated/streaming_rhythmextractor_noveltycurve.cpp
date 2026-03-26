@@ -47,7 +47,7 @@ bool computeBeats(const vector<Real>& noveltyCurve, Pool& pool, Real frameRate,
 void mergeBpms(vector<Real>& bpmPositions, vector<Real>& bpmAmplitudes, Real tolerance);
 
 void normalizeToMax(vector<Real>& array) {
-  Real maxValue = -1.0*std::numeric_limits<int>::max();
+  Real maxValue = -1.0*(std::numeric_limits<int>::max)();
   for (int i=0; i<int(array.size()); i++) {
     if (fabs(array[i]) > maxValue) maxValue = fabs(array[i]);
   }
@@ -422,7 +422,7 @@ vector<Real> getClosestMatch(const vector<Real>& bpms1, const vector<Real>& bpms
   // however the bpms from bpmHistogram tend to be more exact.
   int n = 2;
   Real tolerance = 5; // be a bit more permissive at this point
-  vector<Real> minDist(n, numeric_limits<int>::max());
+  vector<Real> minDist(n, (numeric_limits<int>::max)());
   vector<Real> bestMatch(n,-1);
   vector<int> minIdx(n,bpms1.size());
   for (int i=0; i<(int)bpms1.size(); i++) {

@@ -51,7 +51,7 @@ void NoiseAdder::compute() {
   noise.resize(size);
   for (std::vector<Real>::size_type i=0; i<size; i++) {
 #ifdef CPP_11
-    noise[i] = signal[i] + _level * (Real(_mtrand())/std::mt19937::max()*2.0f - 1.0f);
+    noise[i] = signal[i] + _level * (Real(_mtrand())/(std::mt19937::max)()*2.0f - 1.0f);
 #else
     noise[i] = signal[i] + _level * (Real(_mtrand())*2.0f - 1.0f);
 #endif

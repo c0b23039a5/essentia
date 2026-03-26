@@ -298,7 +298,7 @@ bool MatchRepetitionAndRegexAtHead(
   const size_t min_count = (repeat == '+') ? 1 : 0;
   const size_t max_count = (repeat == '?') ? 1 :
       static_cast<size_t>(-1) - 1;
-  // We cannot call numeric_limits::max() as it conflicts with the
+  // We cannot call (numeric_limits::max)() as it conflicts with the
   // max() macro on Windows.
 
   for (size_t i = 0; i <= max_count; ++i) {
