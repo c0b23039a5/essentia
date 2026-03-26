@@ -63,7 +63,7 @@ void VectorRealToTensor::configure() {
   _timeStamps = shape[2];
   _frame.setAcquireSize(_timeStamps);
 
-  if ((shape[0] == -1) or (shape[0] == 0)) {
+  if ((shape[0] == -1) || (shape[0] == 0)) {
     _accumulate = true;
   }
 
