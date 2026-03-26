@@ -133,7 +133,7 @@ jobs:
         if: ${{ startsWith(matrix.os, 'windows') }}
         env:
           CIBW_BUILD: "cp312-win_amd64 cp313-win_amd64 cp314-win_amd64"
-          ESSENTIA_WHEEL_SKIP_3RDPARTY: "1"
+          ESSENTIA_WHEEL_SKIP_3RDPARTY: "0"
           PKG_CONFIG: ${{ env.ESSENTIA_WINDOWS_PKG_CONFIG_EXE }}
           PKG_CONFIG_PATH: ${{ env.ESSENTIA_WINDOWS_PKG_CONFIG_PATH }}
           INCLUDE: ${{ env.ESSENTIA_WINDOWS_INCLUDE_PATHS }};${{ env.ESSENTIA_WINDOWS_EIGEN_INCLUDE }};${{ env.INCLUDE }}
