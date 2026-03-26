@@ -21,6 +21,7 @@
 #define ESSENTIA_VECTOROUTPUT_H
 
 #include "../streamingalgorithm.h"
+#include <algorithm>
 
 namespace essentia {
 namespace streaming {
@@ -59,8 +60,8 @@ class VectorOutput : public Algorithm {
 
     EXEC_DEBUG("process()");
 
-    int ntokens = std::min(_data.available(), _data.buffer().bufferInfo().maxContiguousElements);
-    ntokens = std::max(1, ntokens);
+    int ntokens = (std::min)(_data.available(), _data.buffer().bufferInfo().maxContiguousElements);
+    ntokens = (std::max)(1, ntokens);
 
     EXEC_DEBUG("acquiring " << ntokens << " tokens");
     if (!_data.acquire(ntokens)) {
