@@ -58,7 +58,6 @@ jobs:
         env:
           CIBW_BUILD: "cp312-win_amd64 cp313-win_amd64 cp314-win_amd64"
           ESSENTIA_WHEEL_SKIP_3RDPARTY: "1"
-          ESSENTIA_WHEEL_ONLY_PYTHON: "1"
         run: python -m cibuildwheel . --output-dir wheelhouse --config-file ${{ matrix.config }}.toml
 
       - name: Build wheels
