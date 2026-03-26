@@ -40,7 +40,8 @@ class EssentiaBuildExtension(build_ext):
         var_macos_arm64 = os.getenv('ESSENTIA_MACOSX_ARM64')
         macos_arm64_flags = []
         if var_macos_arm64 == '1':
-            macos_arm64_flags = ['--arch=arm64', '--no-msse']
+            # waf expects option/value as separate argv entries for --arch.
+            macos_arm64_flags = ['--arch', 'arm64', '--no-msse']
 
         pkg_config_path = os.getenv('PKG_CONFIG_PATH')
         if sys.platform == 'darwin':
