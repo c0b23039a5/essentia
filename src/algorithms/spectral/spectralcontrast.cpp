@@ -19,6 +19,7 @@
 
 #include "spectralcontrast.h"
 #include "essentiamath.h"
+#include <algorithm>
 
 using namespace std;
 using namespace essentia;
@@ -117,7 +118,7 @@ void SpectralContrast::compute() {
 
     // sort the subband (ascending order)
     sort(spectrum.begin()+specIdx,
-         spectrum.begin()+std::min(specIdx+_numberOfBinsInBands[bandIdx], int(spectrum.size())));
+         spectrum.begin()+(std::min)(specIdx+_numberOfBinsInBands[bandIdx], int(spectrum.size())));
 
     // number of bins to take the mean of
     // TODO: changed from int() to round() as it seems to be more correct. 
