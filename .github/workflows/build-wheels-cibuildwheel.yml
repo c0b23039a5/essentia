@@ -103,6 +103,7 @@ jobs:
             (Join-Path $repo 'packaging/win32_3rdparty/fftw-3.3.3/include'),
             (Join-Path $repo 'packaging/win32_3rdparty/libsamplerate-0.1.8/include'),
             (Join-Path $repo 'packaging/win32_3rdparty/taglib-1.9.1/include'),
+            (Join-Path $repo 'packaging/win32_3rdparty/taglib-1.9.1/include/taglib'),
             (Join-Path $repo 'packaging/win32_3rdparty/libav-0.8.9/include'),
             (Join-Path $repo 'packaging/win32_3rdparty/yaml-0.1.5/include')
           ) -join ';'
