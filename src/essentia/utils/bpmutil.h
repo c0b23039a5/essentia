@@ -23,6 +23,7 @@
 
 #include "../essentiamath.h"
 #include <cassert>
+#include <algorithm>
 
 namespace essentia {
 
@@ -55,18 +56,18 @@ void bpmDistance(Real x, Real y, Real& error, Real& ratio) {
   error = -1;
   if (ratio < 1) {
     ratio = round(1./ratio);
-    error=(x*ratio-y)/std::min(y,Real(x*ratio))*100;
+    error=(x*ratio-y)/(std::min)(y,Real(x*ratio))*100;
   }
   else {
     ratio = round(ratio);
-    error = (x-y*ratio)/std::min(x,Real(y*ratio))*100;
+    error = (x-y*ratio)/(std::min)(x,Real(y*ratio))*100;
   }
 }
 
 inline
 bool areEqual(Real a, Real b, Real tolerance) {
   //return fabs(a-b) <= epsilon;
-  Real epsilon = std::max(tolerance, std::numeric_limits<Real>::epsilon());
+  Real epsilon = (std::max)(tolerance, std::numeric_limits<Real>::epsilon());
   Real error = 0;
   Real ratio = 0;
   bpmDistance(a, b, error, ratio);
@@ -76,7 +77,7 @@ bool areEqual(Real a, Real b, Real tolerance) {
 inline
 bool areHarmonics(Real x, Real y, Real epsilon, bool bPower2) {
   // FIXME epsilon must be in %. a strict choice could be 3
-  epsilon = std::max(epsilon, std::numeric_limits<Real>::epsilon());
+  epsilon = (std::max)(epsilon, std::numeric_limits<Real>::epsilon());
   Real ratio = 0;
   Real error = 0;
   bpmDistance(x, y, error, ratio);
@@ -91,11 +92,11 @@ bool areHarmonics(Real x, Real y, Real epsilon, bool bPower2) {
 inline
 Real greatestCommonDivisor(Real x, Real y, Real epsilon) {
   // FIXME epsilon must be in %. a strict choice could be 3
-  epsilon = std::max(epsilon, std::numeric_limits<Real>::epsilon());
+  epsilon = (std::max)(epsilon, std::numeric_limits<Real>::epsilon());
   if (x<y) return greatestCommonDivisor(y, x, epsilon);
   if (x==0) return 0;
-  Real error = std::numeric_limits<int>::max();
-  Real ratio = std::numeric_limits<int>::max();
+  Real error = (std::numeric_limits<int>::max)();
+  Real ratio = (std::numeric_limits<int>::max)();
   bpmDistance(x, y, error, ratio);
   if (fabs(error) <= epsilon) return y;
   int a = int(x+0.5);

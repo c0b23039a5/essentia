@@ -18,6 +18,7 @@
  */
 
 #include "snr.h"
+#include <algorithm>
 
 using namespace essentia;
 using namespace standard;
@@ -116,7 +117,7 @@ void SNR::compute() {
     if (sum(_prevSnrPrior) == 0.f) {
       for (uint i = 0; i < _specSize; i++)
         _prevSnrPrior[i] = _alphaMmse + (1 - _alphaMmse) *
-                           std::max(_prevSnrInst[i], 0.f);
+                           (std::max)(_prevSnrInst[i], 0.f);
       
       // Check that there are not 0-valued bins to prevent division by 0.
       for (uint i = 0; i < _specSize; i++)
@@ -185,7 +186,7 @@ void SNR::SNRPriorEst(Real alpha, std::vector<Real> &snrPrior,
                       std::vector<Real> snrInst) {
   for (uint i = 0; i < _specSize; i++) {
     snrPrior[i] = alpha * pow(mmse[i], 2.f) / noisePsd[i] +
-                  (1 - alpha) * std::max(snrInst[i], 0.f);
+                  (1 - alpha) * (std::max)(snrInst[i], 0.f);
     if (snrPrior[i] == 0.f)
       snrPrior[i] += _eps;
     }
