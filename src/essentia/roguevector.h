@@ -89,13 +89,22 @@ void RogueVector<T>::setSize(size_t size) {
 
 template <typename T>
 void RogueVector<T>::setData(T* data) {
+#if defined(_MSC_VER)
+  this->_Mypair._Myval2._Myfirst = data;
+#else
   this->_Myfirst() = data;
+#endif
 }
 
 template <typename T>
 void RogueVector<T>::setSize(size_t size) {
+#if defined(_MSC_VER)
+  this->_Mypair._Myval2._Mylast = this->_Mypair._Myval2._Myfirst + size;
+  this->_Mypair._Myval2._Myend = this->_Mypair._Myval2._Myfirst + size;
+#else
   this->_Mylast() = this->_Myfirst() + size;
   this->_Myend() = this->_Myfirst() + size;
+#endif
 }
 
 #endif
