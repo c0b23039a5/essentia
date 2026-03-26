@@ -56,6 +56,7 @@ jobs:
         if: ${{ startsWith(matrix.os, 'windows') }}
         env:
           CIBW_BUILD: "*-win_amd64"
+          CIBW_SKIP: "cp38-* cp3??t-*"
         run: python -m cibuildwheel . --output-dir wheelhouse --config-file ${{ matrix.config }}.toml
 
       - name: Build wheels
