@@ -5,7 +5,7 @@ manylinux-x86_64-image = "mtgupf/essentia-builds:manylinux2014_x86_64"
 # Only support x86_64 for essentia-tensorflow.
 build = "cp**-manylinux_x86_64"
 
-skip = ["pp*", "*-musllinux*", "*i686", "*cp36*", "*cp37*", "*cp38*"]
+skip = ["pp*", "*-musllinux*", "*i686", "*cp36*", "*cp37*", "*cp38*", "*cp313t*", "*cp314t*"]
 
 environment = { PROJECT_NAME="essentia-tensorflow", ESSENTIA_PROJECT_NAME="${PROJECT_NAME}", ESSENTIA_WHEEL_SKIP_3RDPARTY=1, ESSENTIA_WHEEL_ONLY_PYTHON=1 }
 
@@ -24,21 +24,19 @@ test-command = "python -c 'import essentia; import essentia.standard; import ess
 
 [tool.cibuildwheel.macos]
 
-skip = ["pp*", "*cp36*", "*cp37*", "*cp38*"]
+skip = ["pp*", "*cp36*", "*cp37*", "*cp38*", "*cp313t*", "*cp314t*"]
 
-environment = { PROJECT_NAME="essentia-tensorflow", ESSENTIA_PROJECT_NAME="${PROJECT_NAME}", ESSENTIA_WHEEL_SKIP_3RDPARTY=1, ESSENTIA_WHEEL_ONLY_PYTHON=1, MACOSX_DEPLOYMENT_TARGET=14.2 }
+environment = { PROJECT_NAME="essentia-tensorflow", ESSENTIA_PROJECT_NAME="${PROJECT_NAME}", ESSENTIA_WHEEL_SKIP_3RDPARTY=1, ESSENTIA_WHEEL_ONLY_PYTHON=0, MACOSX_DEPLOYMENT_TARGET=26.0, PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:/usr/local/share/pkgconfig:/opt/homebrew/lib/pkgconfig:/opt/homebrew/share/pkgconfig" }
 
 before-all = [
   "brew install pkg-config gcc readline sqlite gdbm freetype libpng",
-  "brew install eigen libyaml fftw ffmpeg@2.8 libsamplerate libtag",
-  "brew link --force ffmpeg@2.8",
+  "brew install eigen@3 libyaml fftw ffmpeg libsamplerate libtag",
   "brew install chromaprint",
-  "brew link --overwrite ffmpeg@2.8",
   # Delocate checks for the min OS version (LC_BUILD_VERSION or C_VERSION_MIN_MACOSX).
   # Tensorflow bottle a has minimum target of 14.2 which is too new.
   # We could build from source as a workaround, however, it takes too much time on the CI worker.
   # To keep it simple, just use the bottles available for tensorflow.
-  "brew install tensorflow",
+  "brew install tensorflow libtensorflow",
   # ---
   # Building tensorflow from source:
   #"echo Checking available SDKs:",
@@ -46,7 +44,7 @@ before-all = [
   #"SDKROOT=$(xcrun --sdk macosx13.0 --show-sdk-path) brew install --build-from-source tensorflow",
   # ---
   # Override VIRTUAL_ENV set by cibuildwheel to ensure global install
-  "VIRTUAL_ENV=/usr/local python waf configure --with-tensorflow --pkg-config-path=\"${PKG_CONFIG_PATH}\"",
+  "BREW_DEPS=\"eigen@3 libyaml fftw ffmpeg libsamplerate libtag chromaprint libtensorflow\" && BREW_PC_PATHS=$(for dep in ${BREW_DEPS}; do prefix=$(brew --prefix ${dep}); printf \"%s:%s:\" \"${prefix}/lib/pkgconfig\" \"${prefix}/share/pkgconfig\"; done) && BREW_PC_PATHS=${BREW_PC_PATHS%:} && VIRTUAL_ENV=/usr/local python waf configure --with-tensorflow --pkg-config-path=\"${BREW_PC_PATHS}:${PKG_CONFIG_PATH}\"",
   "python waf",
   "python waf install",
   # Monkey-patch package name.
@@ -54,28 +52,28 @@ before-all = [
   "sed 's/^name *= *\"essentia\"$/name = \"essentia-tensorflow\"/' pyproject.toml > pyproject.toml.patched && mv pyproject.toml.patched pyproject.toml"
 ]
 
-# FIXME Temporarily disable testing on macos-13 runner. The wheel is tagged as macosx_14_2 due to the Tensorflow dependency, so it can't be installed by pip ("not a supported wheel on this platform").
+# FIXME Temporarily disable testing on old macOS runners. The wheel target is
+# constrained by Homebrew dylib minimum versions from the macOS-26 Intel image,
+# so pip on older runners can reject the artifact as unsupported.
 #test-command = "python -c 'import essentia; import essentia.standard; import essentia.streaming; from essentia.standard import MonoLoader, MetadataReader, YamlInput, Chromaprinter, TensorflowPredict'"
 
 
 [[tool.cibuildwheel.overrides]]
 select = "*macosx_arm64*"
 
-skip = ["pp*", "*cp36*", "*cp37*", "*cp38*"]
+skip = ["pp*", "*cp36*", "*cp37*", "*cp38*", "*cp313t*", "*cp314t*"]
 
-environment = { PROJECT_NAME="essentia-tensorflow", ESSENTIA_PROJECT_NAME="${PROJECT_NAME}", ESSENTIA_WHEEL_SKIP_3RDPARTY=1, ESSENTIA_WHEEL_ONLY_PYTHON=1, ESSENTIA_MACOSX_ARM64=1, MACOSX_DEPLOYMENT_TARGET=15.2 }
+environment = { PROJECT_NAME="essentia-tensorflow", ESSENTIA_PROJECT_NAME="${PROJECT_NAME}", ESSENTIA_WHEEL_SKIP_3RDPARTY=1, ESSENTIA_WHEEL_ONLY_PYTHON=0, ESSENTIA_MACOSX_ARM64=1, MACOSX_DEPLOYMENT_TARGET=15.2, PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:/usr/local/share/pkgconfig:/opt/homebrew/lib/pkgconfig:/opt/homebrew/share/pkgconfig" }
 
 before-all = [
   "brew install pkg-config gcc readline sqlite gdbm libpng",
-  "brew install eigen libyaml fftw ffmpeg@2.8 libsamplerate libtag",
-  "brew link --force ffmpeg@2.8",
+  "brew install eigen@3 libyaml fftw ffmpeg libsamplerate libtag",
   "brew install chromaprint",
-  "brew link --overwrite ffmpeg@2.8",
   # Delocate checks for the min OS version (LC_BUILD_VERSION or C_VERSION_MIN_MACOSX).
   # Tensorflow bottle a has minimum target of 15.2 which is too new.
   # We could build from source as a workaround, however, it takes too much time on the CI worker.
   # To keep it simple, just use the bottles available for tensorflow.
-  "brew install tensorflow",
+  "brew install tensorflow libtensorflow",
   # ---
   # Building tensorflow from source:
   #"echo Checking available SDKs:",
@@ -83,7 +81,7 @@ before-all = [
   #"SDKROOT=$(xcrun --sdk macosx14.0 --show-sdk-path) brew install --build-from-source tensorflow",
   # ---
   # Override VIRTUAL_ENV set by cibuildwheel to ensure global install
-  "VIRTUAL_ENV=/usr/local python waf configure --with-tensorflow --pkg-config-path=\"${PKG_CONFIG_PATH}\" --arch arm64 --no-msse",
+  "BREW_DEPS=\"eigen@3 libyaml fftw ffmpeg libsamplerate libtag chromaprint libtensorflow\" && BREW_PC_PATHS=$(for dep in ${BREW_DEPS}; do prefix=$(brew --prefix ${dep}); printf \"%s:%s:\" \"${prefix}/lib/pkgconfig\" \"${prefix}/share/pkgconfig\"; done) && BREW_PC_PATHS=${BREW_PC_PATHS%:} && VIRTUAL_ENV=/usr/local python waf configure --with-tensorflow --pkg-config-path=\"${BREW_PC_PATHS}:${PKG_CONFIG_PATH}\" --arch arm64 --no-msse",
   "python waf",
   "sudo python waf install",
   # Monkey-patch package name.
@@ -91,17 +89,5 @@ before-all = [
   "sed 's/^name *= *\"essentia\"$/name = \"essentia-tensorflow\"/' pyproject.toml > pyproject.toml.patched && mv pyproject.toml.patched pyproject.toml"
 ]
 
-# On Mac arm64, libavcodec.56.60.100, libavformat.56.40.101 and
-# libavutil.54.31.100, depend on libSDL1.2-compat, which is a compatibility
-# layer for SDL2. libSDL1.2-compat expects SDL2 to be installed in the default
-# brew location (i.e., /opt/homebrew/opt/sdl2/lib), so the user would need to
-# install it via brew manually. Alternativelly, we can manualy copy the SDL2
-# libs into the wheel. This is a temporary solution, and in the long term we
-# should move to FFmpeg > 2.X.
-repair-wheel-command = [
-  "delocate-wheel --require-archs {delocate_archs} -w {dest_dir} -v {wheel}",
-  "mkdir -p {dest_dir}/essentia/.dylibs",
-  "cp /opt/homebrew/opt/sdl2/lib/libSDL2*.dylib {dest_dir}/essentia/.dylibs",
-  "wheel_rel=$(echo {wheel} | grep -o '[^/]*$')",
-  "cd {dest_dir} && zip -u {dest_dir}/$wheel_rel essentia/.dylibs/*"
-]
+# With Homebrew FFmpeg, delocate can bundle linked dylibs directly.
+repair-wheel-command = "delocate-wheel --require-archs {delocate_archs} -w {dest_dir} -v {wheel}"

@@ -2,14 +2,20 @@ name: Build Python wheels (cibuildwheel)
 
 on: [push, pull_request]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build_wheels:
     name: Build wheels on ${{ matrix.os }} / ${{ matrix.config }}
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
-        # Build only on Ubuntu as requested.
-        os: [ubuntu-latest]
+        # Build wheels on Linux and macOS to keep both cibuildwheel
+        # configuration paths validated in CI.
+        os: [ubuntu-latest, macos-26-intel]
         config: [cibuildwheel, cibuildwheel-tensorflow]
 
     steps:
