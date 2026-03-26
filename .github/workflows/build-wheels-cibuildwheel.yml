@@ -70,12 +70,12 @@ jobs:
           $pcDir = Join-Path $env:RUNNER_TEMP 'essentia-pkgconfig'
           New-Item -ItemType Directory -Force -Path $pcDir | Out-Null
 
-          @"
-Name: eigen3
-Description: Eigen3
-Version: 3.3.7
-Cflags: -I$eigenIncludeDir
-"@ | Out-File -FilePath (Join-Path $pcDir 'eigen3.pc') -Encoding ascii
+          @(
+            'Name: eigen3',
+            'Description: Eigen3',
+            'Version: 3.3.7',
+            "Cflags: -I$eigenIncludeDir"
+          ) | Out-File -FilePath (Join-Path $pcDir 'eigen3.pc') -Encoding ascii
 
           $repo = (Get-Location).Path
           $pkgConfigPaths = @(
