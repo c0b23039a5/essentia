@@ -1,6 +1,3 @@
-[tool.cibuildwheel]
-enable = ["cpython-freethreading"]
-
 [tool.cibuildwheel.linux]
 manylinux-x86_64-image = "mtgupf/essentia-builds:manylinux2014_x86_64"
 manylinux-i686-image = "mtgupf/essentia-builds:manylinux2014_i686"
