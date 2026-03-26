@@ -52,12 +52,49 @@ jobs:
       - name: Install cibuildwheel
         run: python -m pip install cibuildwheel==3.4.0
 
+
+      - name: Prepare Windows pkg-config dependencies
+        if: ${{ startsWith(matrix.os, 'windows') }}
+        shell: pwsh
+        run: |
+          choco install eigen -y --no-progress
+
+          $eigenCore = Get-ChildItem -Path 'C:\ProgramData\chocolatey' -Recurse -Filter Core -ErrorAction SilentlyContinue |
+            Where-Object { $_.FullName -like '*\Eigen\Core' } |
+            Select-Object -First 1
+          if (-not $eigenCore) {
+            throw 'Could not find Eigen/Core after chocolatey installation.'
+          }
+
+          $eigenIncludeDir = Split-Path -Parent (Split-Path -Parent $eigenCore.FullName)
+          $pcDir = Join-Path $env:RUNNER_TEMP 'essentia-pkgconfig'
+          New-Item -ItemType Directory -Force -Path $pcDir | Out-Null
+
+          @"
+Name: eigen3
+Description: Eigen3
+Version: 3.3.7
+Cflags: -I$eigenIncludeDir
+"@ | Out-File -FilePath (Join-Path $pcDir 'eigen3.pc') -Encoding ascii
+
+          $repo = (Get-Location).Path
+          $pkgConfigPaths = @(
+            $pcDir,
+            (Join-Path $repo 'packaging/win32_3rdparty/fftw-3.3.3/lib/pkgconfig'),
+            (Join-Path $repo 'packaging/win32_3rdparty/libsamplerate-0.1.8/lib/pkgconfig'),
+            (Join-Path $repo 'packaging/win32_3rdparty/taglib-1.9.1/lib/pkgconfig'),
+            (Join-Path $repo 'packaging/win32_3rdparty/libav-0.8.9/lib/pkgconfig'),
+            (Join-Path $repo 'packaging/win32_3rdparty/yaml-0.1.5/lib/pkgconfig')
+          ) -join ';'
+
+          "ESSENTIA_WINDOWS_PKG_CONFIG_PATH=$pkgConfigPaths" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
       - name: Build wheels (Windows amd64 only)
         id: build_windows
         if: ${{ startsWith(matrix.os, 'windows') }}
         env:
           CIBW_BUILD: "cp312-win_amd64 cp313-win_amd64 cp314-win_amd64"
           ESSENTIA_WHEEL_SKIP_3RDPARTY: "1"
+          PKG_CONFIG_PATH: ${{ env.ESSENTIA_WINDOWS_PKG_CONFIG_PATH }}
         run: python -m cibuildwheel . --output-dir wheelhouse --config-file ${{ matrix.config }}.toml
 
       - name: Build wheels
