@@ -13,10 +13,35 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Build wheels on Linux and macOS to keep both cibuildwheel
-        # configuration paths validated in CI.
-        os: [ubuntu-latest, macos-26, macos-26-intel]
-        config: [cibuildwheel, cibuildwheel-tensorflow]
+        include:
+          # Build wheels on Linux and macOS to keep both cibuildwheel
+          # configuration paths validated in CI.
+          - os: ubuntu-latest
+            config: cibuildwheel
+            run_build: true
+          - os: ubuntu-latest
+            config: cibuildwheel-tensorflow
+            run_build: true
+          - os: macos-26
+            config: cibuildwheel
+            run_build: true
+          - os: macos-26
+            config: cibuildwheel-tensorflow
+            run_build: true
+          - os: macos-26-intel
+            config: cibuildwheel
+            run_build: true
+          - os: macos-26-intel
+            config: cibuildwheel-tensorflow
+            run_build: true
+          # Keep both Windows images healthy while we evaluate VS2026
+          # migration impact.
+          - os: windows-2025
+            config: cibuildwheel
+            run_build: false
+          - os: windows-2025-vs2026
+            config: cibuildwheel
+            run_build: false
 
     steps:
       - uses: actions/checkout@v6
@@ -36,10 +61,16 @@ jobs:
       - name: Install cibuildwheel
         run: python -m pip install cibuildwheel==3.4.0
 
+      - name: Show cibuildwheel identifiers (Windows smoke test)
+        if: ${{ !matrix.run_build }}
+        run: python -m cibuildwheel --print-build-identifiers . --config-file ${{ matrix.config }}.toml
+
       - name: Build wheels
+        if: ${{ matrix.run_build }}
         run: python -m cibuildwheel . --output-dir wheelhouse --config-file ${{ matrix.config }}.toml
 
       - uses: actions/upload-artifact@v6
+        if: ${{ matrix.run_build }}
         with:
           path: ./wheelhouse/*.whl
           name: artifact-${{ matrix.os }}-${{ matrix.config }}
