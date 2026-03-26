@@ -19,6 +19,7 @@
 
 #include "sinemodelanal.h"
 #include "essentiamath.h"
+#include <algorithm>
 
 using namespace essentia;
 using namespace standard;
@@ -122,7 +123,7 @@ void SineModelAnal::configure() {
     throw EssentiaException("Unsupported ordering type: '" + orderBy + "'");
   }
 
-  Real maxFrequency  = std::min(float(parameter("sampleRate").toReal()/2.0), float(parameter("maxFrequency").toReal()));
+  Real maxFrequency  = (std::min)(float(parameter("sampleRate").toReal()/2.0), float(parameter("maxFrequency").toReal()));
 
   _peakDetect->configure("interpolate", true,
                          "range", parameter("sampleRate").toReal()/2.0,
@@ -368,4 +369,3 @@ void SineModelAnal::phaseInterpolation(std::vector<Real> fftphase, std::vector<R
     }
   }
 }
-
