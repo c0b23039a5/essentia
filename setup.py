@@ -44,8 +44,9 @@ class EssentiaBuildExtension(build_ext):
             macos_arm64_flags = ['--arch', 'arm64', '--no-msse']
         windows_flags = []
         if sys.platform.startswith('win'):
-            # Avoid mandatory FFTW import-library linkage on Windows wheel builds.
-            windows_flags = ['--fft=KISS']
+            # Avoid mandatory FFTW/import-library linkage on Windows wheel builds
+            # and skip optional deps that do not ship usable MSVC import libs.
+            windows_flags = ['--fft=KISS', '--lightweight=libav,yaml']
 
         pkg_config_path = os.getenv('PKG_CONFIG_PATH')
         if sys.platform == 'darwin':
