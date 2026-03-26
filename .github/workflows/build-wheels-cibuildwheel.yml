@@ -77,6 +77,8 @@ jobs:
             throw 'Downloaded Eigen does not contain unsupported/Eigen/CXX11/Tensor.'
           }
 
+          $eigenSourceDirPosix = $eigenSourceDir -replace '\\', '/'
+
           $pcDir = Join-Path $env:RUNNER_TEMP 'essentia-pkgconfig'
           New-Item -ItemType Directory -Force -Path $pcDir | Out-Null
 
@@ -84,7 +86,7 @@ jobs:
             'Name: eigen3',
             'Description: Eigen3',
             'Version: 3.3.7',
-            "Cflags: -I$eigenSourceDir"
+            "Cflags: -I$eigenSourceDirPosix"
           ) | Out-File -FilePath (Join-Path $pcDir 'eigen3.pc') -Encoding ascii
 
           $repo = (Get-Location).Path
