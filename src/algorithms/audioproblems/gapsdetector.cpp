@@ -19,6 +19,7 @@
 
 #include "gapsdetector.h"
 #include "essentiamath.h"
+#include <algorithm>
 
 using namespace essentia;
 using namespace standard;
@@ -57,7 +58,7 @@ void GapsDetector::configure() {
   _prepowerSamples = _prepowerTime * _sampleRate;
   _postpowerSamples = _postpowerTime * _sampleRate;
 
-  _updateSize = std::min(_hopSize, _prepowerSamples);
+  _updateSize = (std::min)(_hopSize, _prepowerSamples);
 
   if (_frameSize < _hopSize)
     throw(EssentiaException(
@@ -87,7 +88,7 @@ void GapsDetector::compute() {
   // Fill the right buffer for each gap candidate.
   for (uint i = 0; i < _gaps.size(); i++) {
     if (!_gaps[i].finished && !_gaps[i].active) {
-      uint last = std::min(_frameSize, _gaps[i].remaining);
+      uint last = (std::min)(_frameSize, _gaps[i].remaining);
       _gaps[i].remaining -= last;
 
       _gaps[i].rBuffer.reserve(_gaps[i].rBuffer.size() + last);
@@ -192,13 +193,13 @@ void GapsDetector::compute() {
     int offset = _frameCount * _hopSize;
     for (uint i = 0; i < uFlanks.size(); i++) {
       uint remaining =
-          std::max((int)(_postpowerSamples + uFlanks[i] - _frameSize), 0);
+          (std::max)((int)(_postpowerSamples + uFlanks[i] - _frameSize), 0);
       for (uint j = 0; j < _gaps.size(); j++) {
         if (_gaps[j].active) {
           _gaps[j].active = false;
           _gaps[j].end = (Real)((offset + uFlanks[i]) / _sampleRate);
           _gaps[j].remaining = remaining;
-          uint last = std::min(_frameSize, uFlanks[i] + _postpowerSamples);
+          uint last = (std::min)(_frameSize, uFlanks[i] + _postpowerSamples);
           std::vector<Real> rBuffer(last - uFlanks[i], 0.f);
           uint l = 0;
           _gaps[j].rBuffer.resize(_frameSize - uFlanks[i]);
