@@ -34,12 +34,12 @@ PyObject* VectorTensorReal::toPythonCopy(const vector<Tensor<Real> >* tenVec) {
     const Tensor<Real>& tensor = (*tenVec)[i];
 
     int nd = tensor.rank();
-    npy_intp dims[nd];
+    std::vector<npy_intp> dims(nd);
 
-    for (int j = 0; j< nd; j++)
+    for (int j = 0; j < nd; j++)
       dims[j] = tensor.dimension(j);
 
-    PyArrayObject* numpyarr = (PyArrayObject*)PyArray_SimpleNew(nd, dims, NPY_FLOAT);
+    PyArrayObject* numpyarr = (PyArrayObject*)PyArray_SimpleNew(nd, dims.data(), NPY_FLOAT);
     
     if (numpyarr == NULL) {
       throw EssentiaException("VectorTensorReal::toPythonCopy: dang null object");
