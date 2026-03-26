@@ -64,8 +64,9 @@ jobs:
         shell: pwsh
         run: |
           $eigenVersion = '3.3.7'
+          $repo = (Get-Location).Path
           $eigenArchive = Join-Path $env:RUNNER_TEMP "eigen-$eigenVersion.tar.gz"
-          $eigenExtractRoot = Join-Path $env:RUNNER_TEMP 'eigen-src'
+          $eigenExtractRoot = Join-Path $repo 'packaging/win32_3rdparty/eigen-src'
           $eigenSourceDir = Join-Path $eigenExtractRoot "eigen-$eigenVersion"
 
           curl.exe -fsSL -o $eigenArchive "https://gitlab.com/libeigen/eigen/-/archive/$eigenVersion/eigen-$eigenVersion.tar.gz"
@@ -77,7 +78,7 @@ jobs:
             throw 'Downloaded Eigen does not contain unsupported/Eigen/CXX11/Tensor.'
           }
 
-          $eigenSourceDirPosix = $eigenSourceDir -replace '\\', '/'
+          $eigenSourceDirPosix = 'packaging/win32_3rdparty/eigen-src/eigen-' + $eigenVersion
 
           $pcDir = Join-Path $env:RUNNER_TEMP 'essentia-pkgconfig'
           New-Item -ItemType Directory -Force -Path $pcDir | Out-Null
@@ -89,7 +90,6 @@ jobs:
             "Cflags: -I$eigenSourceDirPosix"
           ) | Out-File -FilePath (Join-Path $pcDir 'eigen3.pc') -Encoding ascii
 
-          $repo = (Get-Location).Path
           $pkgConfigPaths = @(
             $pcDir,
             (Join-Path $repo 'packaging/win32_3rdparty/fftw-3.3.3/lib/pkgconfig'),
@@ -100,7 +100,7 @@ jobs:
           ) -join ';'
 
           "ESSENTIA_WINDOWS_PKG_CONFIG_PATH=$pkgConfigPaths" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          "ESSENTIA_WINDOWS_EIGEN_INCLUDE=$eigenSourceDir" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "ESSENTIA_WINDOWS_EIGEN_INCLUDE=$eigenSourceDirPosix" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Build wheels (Windows amd64 only)
         id: build_windows
