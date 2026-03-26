@@ -77,7 +77,7 @@ void MaxToTotal::finalProduce() {
 void MaxToTotal::reset() {
   AccumulatorAlgorithm::reset();
   _size = 0;
-  _max = std::numeric_limits<Real>::min();
+  _max = (std::numeric_limits<Real>::min)();
   _maxIdx = 0;
 }
 
