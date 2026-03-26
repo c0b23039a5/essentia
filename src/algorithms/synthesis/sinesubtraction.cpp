@@ -19,6 +19,7 @@
 
 #include "sinesubtraction.h"
 #include "essentiamath.h"
+#include <algorithm>
 #include <essentia/utils/synth_utils.h>
 
 using namespace essentia;
@@ -100,7 +101,7 @@ void SineSubtraction::compute() {
 }
 
 void 	SineSubtraction::subtractFFT(std::vector<std::complex<Real> >&fft1, const std::vector<std::complex<Real> >&fft2) {
-  int minSize = std::min((int)fft1.size(), (int)fft2.size());
+  int minSize = (std::min)((int)fft1.size(), (int)fft2.size());
   for (int i=0; i < minSize; ++i) {
     fft1[i].real( fft1[i].real() -  fft2[i].real());
     fft1[i].imag( fft1[i].imag() -  fft2[i].imag());
