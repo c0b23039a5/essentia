@@ -14,7 +14,7 @@ before-all = [
   "\"${PYBIN}\" waf install"
 ]
 
-test-command = "python -c 'import essentia; import essentia.standard; import essentia.streaming; from essentia.standard import MonoLoader, MetadataReader, YamlInput, Chromaprinter'"
+test-command = "python -c \"import essentia; import essentia.standard; import essentia.streaming; from essentia.standard import MonoLoader, MetadataReader, YamlInput, Chromaprinter\""
 
 
 [tool.cibuildwheel.macos]
@@ -38,7 +38,7 @@ before-all = [
   "python waf install"
 ]
 
-test-command = "python -c 'import essentia; import essentia.standard; import essentia.streaming; from essentia.standard import MonoLoader, MetadataReader, YamlInput, Chromaprinter'"
+test-command = "python -c \"import essentia; import essentia.standard; import essentia.streaming; from essentia.standard import MonoLoader, MetadataReader, YamlInput, Chromaprinter\""
 
 [[tool.cibuildwheel.overrides]]
 select = "*macosx_arm64*"
@@ -69,4 +69,4 @@ repair-wheel-command = "python packaging/repair_macos_arm64_wheel.py {wheel} {de
 
 skip = ["*cp38*", "*cp3??t*", "*-win32"]
 
-test-command = "python -c 'import essentia; import essentia.standard; import essentia.streaming; from essentia.standard import MonoLoader, MetadataReader, YamlInput, Chromaprinter'"
+test-command = "python -c \"import essentia; import essentia.standard; import essentia.streaming; from essentia.standard import MonoLoader, MetadataReader, YamlInput, Chromaprinter\""
