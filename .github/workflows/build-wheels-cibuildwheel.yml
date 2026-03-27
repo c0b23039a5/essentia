@@ -69,22 +69,21 @@ jobs:
         if: ${{ startsWith(matrix.os, 'windows') }}
         shell: pwsh
         run: |
-          $eigenVersion = '3.3.7'
           $repo = (Get-Location).Path
-          $eigenArchive = Join-Path $env:RUNNER_TEMP "eigen-$eigenVersion.tar.gz"
-          $eigenExtractRoot = Join-Path $repo 'packaging/win32_3rdparty/eigen-src'
-          $eigenSourceDir = Join-Path $eigenExtractRoot "eigen-$eigenVersion"
-
-          curl.exe -fsSL -o $eigenArchive "https://gitlab.com/libeigen/eigen/-/archive/$eigenVersion/eigen-$eigenVersion.tar.gz"
-          if (Test-Path $eigenExtractRoot) { Remove-Item -Recurse -Force $eigenExtractRoot }
-          New-Item -ItemType Directory -Force -Path $eigenExtractRoot | Out-Null
-          tar -xf $eigenArchive -C $eigenExtractRoot
-
-          if (-not (Test-Path (Join-Path $eigenSourceDir 'unsupported/Eigen/CXX11/Tensor'))) {
-            throw 'Downloaded Eigen does not contain unsupported/Eigen/CXX11/Tensor.'
+          $vcpkgRoot = Join-Path $env:RUNNER_TEMP 'vcpkg'
+          if (-not (Test-Path $vcpkgRoot)) {
+            git clone https://github.com/microsoft/vcpkg.git $vcpkgRoot
           }
+          & (Join-Path $vcpkgRoot 'bootstrap-vcpkg.bat')
+          & (Join-Path $vcpkgRoot 'vcpkg.exe') install --triplet x64-windows `
+            eigen3 fftw3 libsamplerate taglib libyaml ffmpeg
 
-          $eigenSourceDirPosix = $eigenSourceDir -replace '\\', '/'
+          $vcpkgInstalled = Join-Path $vcpkgRoot 'installed/x64-windows'
+          $eigenInclude = Join-Path $vcpkgInstalled 'include'
+          if (-not (Test-Path (Join-Path $eigenInclude 'unsupported/Eigen/CXX11/Tensor'))) {
+            throw "vcpkg Eigen install does not contain unsupported/Eigen/CXX11/Tensor ($eigenInclude)."
+          }
+          $eigenIncludePosix = $eigenInclude -replace '\\', '/'
 
           $pcDir = Join-Path $env:RUNNER_TEMP 'essentia-pkgconfig'
           New-Item -ItemType Directory -Force -Path $pcDir | Out-Null
@@ -92,38 +91,26 @@ jobs:
           @(
             'Name: eigen3',
             'Description: Eigen3',
-            'Version: 3.3.7',
-            "Cflags: -I$eigenSourceDirPosix"
+            'Version: latest',
+            "Cflags: -I$eigenIncludePosix"
           ) | Out-File -FilePath (Join-Path $pcDir 'eigen3.pc') -Encoding ascii
 
           $pkgConfigPaths = @(
             $pcDir,
-            (Join-Path $repo 'packaging/win32_3rdparty/fftw-3.3.3/lib/pkgconfig'),
-            (Join-Path $repo 'packaging/win32_3rdparty/libsamplerate-0.1.8/lib/pkgconfig'),
-            (Join-Path $repo 'packaging/win32_3rdparty/taglib-1.9.1/lib/pkgconfig'),
-            (Join-Path $repo 'packaging/win32_3rdparty/libav-0.8.9/lib/pkgconfig'),
-            (Join-Path $repo 'packaging/win32_3rdparty/yaml-0.1.5/lib/pkgconfig')
+            (Join-Path $vcpkgInstalled 'lib/pkgconfig'),
+            (Join-Path $vcpkgInstalled 'share/pkgconfig')
           ) -join ';'
 
           $windowsIncludePaths = @(
-            (Join-Path $repo 'packaging/win32_3rdparty/fftw-3.3.3/include'),
-            (Join-Path $repo 'packaging/win32_3rdparty/libsamplerate-0.1.8/include'),
-            (Join-Path $repo 'packaging/win32_3rdparty/taglib-1.9.1/include'),
-            (Join-Path $repo 'packaging/win32_3rdparty/taglib-1.9.1/include/taglib'),
-            (Join-Path $repo 'packaging/win32_3rdparty/libav-0.8.9/include'),
-            (Join-Path $repo 'packaging/win32_3rdparty/yaml-0.1.5/include')
+            (Join-Path $vcpkgInstalled 'include')
           ) -join ';'
 
           $windowsLibPaths = @(
-            (Join-Path $repo 'packaging/win32_3rdparty/fftw-3.3.3/lib'),
-            (Join-Path $repo 'packaging/win32_3rdparty/libsamplerate-0.1.8/lib'),
-            (Join-Path $repo 'packaging/win32_3rdparty/taglib-1.9.1/lib'),
-            (Join-Path $repo 'packaging/win32_3rdparty/libav-0.8.9/lib'),
-            (Join-Path $repo 'packaging/win32_3rdparty/yaml-0.1.5/lib')
+            (Join-Path $vcpkgInstalled 'lib')
           ) -join ';'
 
           "ESSENTIA_WINDOWS_PKG_CONFIG_PATH=$pkgConfigPaths" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          "ESSENTIA_WINDOWS_EIGEN_INCLUDE=$eigenSourceDir" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "ESSENTIA_WINDOWS_EIGEN_INCLUDE=$eigenInclude" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "ESSENTIA_WINDOWS_INCLUDE_PATHS=$windowsIncludePaths" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "ESSENTIA_WINDOWS_LIB_PATHS=$windowsLibPaths" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "ESSENTIA_WINDOWS_PKG_CONFIG_EXE=$repo/packaging/win32_3rdparty/pkgconfig/bin/pkg-config.exe" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
