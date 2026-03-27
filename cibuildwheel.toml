@@ -69,4 +69,6 @@ repair-wheel-command = "python packaging/repair_macos_arm64_wheel.py {wheel} {de
 
 skip = ["*cp38*", "*cp3??t*", "*-win32"]
 
+before-build = "python -m pip install delvewheel"
+repair-wheel-command = "python -m delvewheel repair --add-path \"%RUNNER_TEMP%\\vcpkg\\installed\\x64-windows\\bin\" --wheel-dir {dest_dir} {wheel}"
 test-command = "python -c \"import essentia; import essentia.standard; import essentia.streaming; from essentia.standard import MonoLoader, MetadataReader, YamlInput, Chromaprinter\""
