@@ -125,6 +125,12 @@ def configure(ctx):
         ctx.env.CXXFLAGS += ['-pipe', '-Wall']
     else:
         ctx.env.CXXFLAGS += ['-W2', '-EHsc']
+        # Build with the dynamic MSVC runtime on Windows.
+        # Python extension modules are compiled/linked with /MD, so forcing the
+        # same runtime here prevents LNK2038 RuntimeLibrary mismatches when the
+        # `_essentia` module links against the local `essentia` static library.
+        ctx.env.CXXFLAGS += ['/MD']
+        ctx.env.CFLAGS += ['/MD']
 
     # Force using SSE floating point for all x86 platforms (default for 64-bit
     # in gcc) instead of 387 floating point (used for 32-bit in gcc) to avoid
