@@ -8,7 +8,7 @@ cd tmp
 
 echo "Building taglib $TAGLIB_VERSION"
 
-curl -SLO http://taglib.github.io/releases/$TAGLIB_VERSION.tar.gz
+curl -SLO https://taglib.org/releases/$TAGLIB_VERSION.tar.gz
 tar -xf $TAGLIB_VERSION.tar.gz
 cd $TAGLIB_VERSION/
 

@@ -11,18 +11,18 @@ SHARED_OR_STATIC="
 --enable-static
 "
 
-EIGEN_VERSION=3.3.7
-FFMPEG_VERSION=ffmpeg-7.1.1
+EIGEN_VERSION=5.0.1
+FFMPEG_VERSION=ffmpeg-8.1
 LAME_VERSION=3.100
-TAGLIB_VERSION=taglib-1.11.1
-ZLIB_VERSION=zlib-1.2.12
-FFTW_VERSION=fftw-3.3.2
-LIBSAMPLERATE_VERSION=libsamplerate-0.1.8
-LIBYAML_VERSION=yaml-0.1.5
-CHROMAPRINT_VERSION=1.5.1
-QT_SOURCE_URL=https://download.qt.io/archive/qt/4.8/4.8.4/qt-everywhere-opensource-src-4.8.4.tar.gz
+TAGLIB_VERSION=taglib-2.2.1
+ZLIB_VERSION=zlib-1.3.2
+FFTW_VERSION=fftw-3.3.10
+LIBSAMPLERATE_VERSION=libsamplerate-0.2.2
+LIBYAML_VERSION=yaml-0.2.5
+CHROMAPRINT_VERSION=1.6.0
+QT_SOURCE_URL=https://download.qt.io/archive/qt/4.8/4.8.7/qt-everywhere-opensource-src-4.8.7.tar.gz
 GAIA_VERSION=2.4.6-86-ged433ed
-TENSORFLOW_VERSION=2.5.0
+TENSORFLOW_VERSION=2.21.0
 
 FFMPEG_AUDIO_FLAGS="
     --disable-programs
