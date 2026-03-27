@@ -48,6 +48,11 @@ def build(ctx):
                       # system python path
                       os.path.join(ctx.env.PYTHONDIR, 'numpy', 'core', 'include') ]
 
+    # NOTE:
+    # Keep `use` as an explicit list. A trailing whitespace in a string value
+    # can make local target resolution brittle on some toolchains (notably
+    # MSVC/Windows builds), which may drop the `essentia` static library from
+    # the link step and surface as many unresolved externals from core symbols.
     pybindings = ctx.shlib(
         source   = ctx.path.ant_glob('essentia.cpp parsing.cpp pytypes/*.cpp'),
         target   = '_essentia',
@@ -55,7 +60,7 @@ def build(ctx):
         includes = NUMPY_INCPATH + [ '.', 'pytypes' ] + (ctx.env.INCLUDES_ESSENTIA if ctx.env.ONLY_PYTHON else adjust(ctx.env.INCLUDES, '..')),
         cxxflags = [ '-w' ],
         install_path = '${PYTHONDIR}/essentia',
-        use      = ctx.env.USE_LIBS if ctx.env.ONLY_PYTHON else 'essentia ' #+ ctx.env.USE_LIBS
+        use      = ctx.env.USE_LIBS if ctx.env.ONLY_PYTHON else ['essentia'] # + ctx.env.USE_LIBS
     )
 
     ctx.install_files('${PYTHONDIR}', ctx.path.ant_glob('essentia/**/*.py'),
