@@ -25,6 +25,8 @@ jobs:
             config: cibuildwheel
           - os: ubuntu-24.04-arm
             config: cibuildwheel
+          - os: ubuntu-24.04-arm
+            config: cibuildwheel
           - os: macos-26
             config: cibuildwheel
           - os: macos-26-intel
@@ -101,8 +103,14 @@ jobs:
           ) -join ';'
 
           $windowsIncludePaths = @(
-            (Join-Path $repo 'packaging/win32_3rdparty/fftw-3.3.3/include'),
-            (Join-Path $repo 'packaging/win32_3rdparty/libsamplerate-0.1.8/include'),
+        if: ${{ !startsWith(matrix.os, 'windows') && matrix.os != 'ubuntu-24.04-arm' }}
+      - name: ARM runner preflight (dependencies image pending)
+        if: ${{ matrix.os == 'ubuntu-24.04-arm' }}
+        run: |
+          echo "ARM runner is enabled in matrix."
+          echo "Wheel build is deferred until an aarch64 dependency image/bootstrap is available."
+
+        if: ${{ ( !startsWith(matrix.os, 'windows') && matrix.os != 'ubuntu-24.04-arm' ) || steps.build_windows.outcome == 'success' }}
             (Join-Path $repo 'packaging/win32_3rdparty/taglib-1.9.1/include'),
             (Join-Path $repo 'packaging/win32_3rdparty/taglib-1.9.1/include/taglib'),
             (Join-Path $repo 'packaging/win32_3rdparty/libav-0.8.9/include'),
