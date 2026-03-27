@@ -48,9 +48,9 @@ class EssentiaBuildExtension(build_ext):
         static_deps_flags = ['--static-dependencies']
         build_static_flags = ['--build-static']
         if sys.platform.startswith('win'):
-            # Avoid linking prepackaged x86 static deps on Windows wheels and
-            # minimize optional dependencies that often miss x64 import libs.
-            windows_flags = ['--fft=KISS', '--lightweight=']
+            # Keep using system-provided dependencies on Windows wheels.
+            # Do not force lightweight/KISS mode: optional deps should be
+            # detected through pkg-config (FFTW, FFmpeg, TagLib, YAML, etc.).
             static_deps_flags = []
 
         pkg_config_path = os.getenv('PKG_CONFIG_PATH')
