@@ -20,9 +20,15 @@ if [[ "$*" == *--with-gaia* ]]
         rm -rf mkspecs plugins translations
 fi
 
-if [[ "$*" == *--with-tensorflow* ]]
+if [[ "$*" == *--with-tensorflow-cpu* ]]
     then
-        ./build_tensorflow.sh
+        ./build_tensorflow.sh cpu
+elif [[ "$*" == *--with-tensorflow-gpu* ]]
+    then
+        ./build_tensorflow.sh gpu
+elif [[ "$*" == *--with-tensorflow* ]]
+    then
+        ./build_tensorflow.sh auto
 fi
 
 rm -rf bin share
