@@ -1,15 +1,11 @@
 [tool.cibuildwheel.linux]
-manylinux-x86_64-image = "mtgupf/essentia-builds:manylinux2014_x86_64"
-manylinux-i686-image = "mtgupf/essentia-builds:manylinux2014_i686"
-manylinux-aarch64-image = "quay.io/pypa/manylinux2014_aarch64:latest"
-
 skip = ["*-musllinux*", "*i686", "*cp38*", "*cp3??t*"]
 
 environment = { PROJECT_NAME="essentia", ESSENTIA_PROJECT_NAME="${PROJECT_NAME}", ESSENTIA_WHEEL_SKIP_3RDPARTY=1, ESSENTIA_WHEEL_ONLY_PYTHON=1 }
 
 before-all = [
   "PYBIN=$(ls -1 /opt/python/cp3*-cp3*/bin/python | head -n 1)",
-  "\"${PYBIN}\" waf configure --with-gaia --build-static --static-dependencies --pkg-config-path=\"${PKG_CONFIG_PATH}\"",
+  "\"${PYBIN}\" waf configure --with-gaia --build-static --static-dependencies",
   "echo 'Note: libyaml pkg-config module is yaml-0.1 (ABI name); resolved version can be 0.2.x'",
   "echo 'Resolved dependency versions (pkg-config)' && for dep in eigen3 yaml-0.1 fftw3f libavcodec libavformat libavutil libswresample samplerate taglib libchromaprint; do if pkg-config --exists \"$dep\"; then echo \"$dep=$(pkg-config --modversion \"$dep\")\"; else echo \"$dep=not found\"; fi; done",
   "\"${PYBIN}\" waf",
