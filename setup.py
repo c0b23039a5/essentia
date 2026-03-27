@@ -3,6 +3,8 @@ import os
 import glob
 import subprocess
 import sys
+import site
+import sysconfig
 from setuptools import setup, Extension
 from setuptools.command.build_ext import build_ext
 from setuptools.command.install_lib import install_lib
@@ -42,6 +44,14 @@ class EssentiaBuildExtension(build_ext):
         if var_macos_arm64 == '1':
             # waf expects option/value as separate argv entries for --arch.
             macos_arm64_flags = ['--arch', 'arm64', '--no-msse']
+        windows_flags = []
+        static_deps_flags = ['--static-dependencies']
+        build_static_flags = ['--build-static']
+        if sys.platform.startswith('win'):
+            # Keep using system-provided dependencies on Windows wheels.
+            # Do not force lightweight/KISS mode: optional deps should be
+            # detected through pkg-config (FFTW, FFmpeg, TagLib, YAML, etc.).
+            static_deps_flags = []
 
         pkg_config_path = os.getenv('PKG_CONFIG_PATH')
         if sys.platform == 'darwin':
@@ -70,15 +80,55 @@ class EssentiaBuildExtension(build_ext):
 
         if var_only_python in os.environ and os.environ[var_only_python]=='1':
             print('Skipping building the core libessentia library (%s=1)' %  var_only_python)
-            subprocess.run([PYTHON,  'waf', 'configure', '--only-python', '--static-dependencies',
-                      '--prefix=tmp'] + macos_arm64_flags + pkg_config_flags, check=True)
+            subprocess.run([PYTHON,  'waf', 'configure', '--only-python',
+                      '--prefix=tmp'] + static_deps_flags + windows_flags + macos_arm64_flags + pkg_config_flags, check=True)
         else:
-            subprocess.run([PYTHON, 'waf', 'configure', '--build-static', '--static-dependencies',
-                      '--with-python', '--prefix=tmp'] + macos_arm64_flags + pkg_config_flags, check=True)
+            subprocess.run([PYTHON, 'waf', 'configure',
+                      '--with-python', '--prefix=tmp'] + build_static_flags + static_deps_flags + windows_flags + macos_arm64_flags + pkg_config_flags, check=True)
         subprocess.run([PYTHON, 'waf'], check=True)
         subprocess.run([PYTHON, 'waf', 'install'], check=True)
 
-        library = glob.glob('tmp/lib/python*/*-packages/essentia')[0]
+        # Locate installed python package path across platforms.
+        candidate_patterns = [
+            # POSIX installs via waf/python distutils.
+            os.path.join('tmp', 'lib', 'python*', '*-packages', 'essentia'),
+            # Windows installs.
+            os.path.join('tmp', 'Lib', 'site-packages', 'essentia'),
+            # Alternate lowercase variant (some environments).
+            os.path.join('tmp', 'lib', 'site-packages', 'essentia'),
+        ]
+        # Some waf + setuptools build environments (notably Windows cibuildwheel)
+        # install the package directly into the active interpreter site-packages
+        # while still honoring --prefix for non-Python artifacts.
+        candidate_paths = []
+        for key in ('purelib', 'platlib'):
+            path = sysconfig.get_paths().get(key)
+            if path:
+                candidate_paths.append(os.path.join(path, 'essentia'))
+        try:
+            candidate_paths.extend([
+                os.path.join(path, 'essentia') for path in site.getsitepackages()
+            ])
+        except Exception:
+            pass
+        user_site = site.getusersitepackages()
+        if user_site:
+            candidate_paths.append(os.path.join(user_site, 'essentia'))
+
+        matches = []
+        for pattern in candidate_patterns:
+            matches.extend(glob.glob(pattern))
+        for path in candidate_paths:
+            if os.path.isdir(path):
+                matches.append(path)
+
+        if not matches:
+            raise RuntimeError(
+                "Could not locate installed essentia package directory under tmp/. "
+                f"Tried: {candidate_patterns + candidate_paths}"
+            )
+
+        library = matches[0]
 
 
 def get_git_version():

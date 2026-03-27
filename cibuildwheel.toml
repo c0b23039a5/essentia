@@ -63,3 +63,10 @@ before-all = [
 # With Homebrew FFmpeg, delocate can bundle linked dylibs directly.
 # For arm64, thin universal binaries to arm64 first, then run delocate.
 repair-wheel-command = "python packaging/repair_macos_arm64_wheel.py {wheel} {dest_dir} {delocate_archs}"
+
+
+[tool.cibuildwheel.windows]
+
+skip = ["*cp38*", "*cp3??t*", "*-win32"]
+
+test-command = "python -c \"import math, os, tempfile, wave; import essentia, essentia.standard as es, essentia.streaming as est; print(f'Essentia version: {essentia.__version__}'); td=tempfile.TemporaryDirectory(); wav_path=os.path.join(td.name,'tone.wav'); yaml_path=os.path.join(td.name,'pool.yaml'); wf=wave.open(wav_path,'wb'); wf.setnchannels(1); wf.setsampwidth(2); wf.setframerate(44100); [wf.writeframesraw(int(32767*0.25*math.sin(2.0*math.pi*440.0*i/44100)).to_bytes(2,'little',signed=True)) for i in range(44100)]; wf.close(); audio=es.MonoLoader(filename=wav_path, sampleRate=16000)(); assert len(audio)>0; loader=est.MonoLoader(filename=wav_path); del loader; metadata=es.MetadataReader(filename=wav_path)(); assert len(metadata)>=6; pool=essentia.Pool(); pool.add('smoke.value',1.23); es.YamlOutput(filename=yaml_path)(pool); loaded=es.YamlInput(filename=yaml_path)(); assert loaded.descriptorNames(); fp=es.Chromaprinter(sampleRate=16000)(audio); assert fp; td.cleanup(); print('Optional dependency smoke test passed.')\""

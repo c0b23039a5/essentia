@@ -30,12 +30,12 @@ PyObject* TensorReal::toPythonCopy(const essentia::Tensor<essentia::Real>* tenso
   PyObject* result;
 
   int nd = tensor->rank();
-  npy_intp dims[nd];
+  std::vector<npy_intp> dims(nd);
 
   for (int i = 0; i < nd; i++)
     dims[i] = tensor->dimension(i);
 
-  result = PyArray_SimpleNew(nd, dims, NPY_FLOAT);
+  result = PyArray_SimpleNew(nd, dims.data(), NPY_FLOAT);
 
   Real* dest = (Real*)(((PyArrayObject*)result)->data);
   const Real* src = tensor->data();
