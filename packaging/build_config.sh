@@ -289,14 +289,21 @@ export TF_NEED_HDFS="${TF_NEED_HDFS:-0}"
 export TF_ENABLE_XLA="${TF_ENABLE_XLA:-0}"
 export TF_NEED_OPENCL="${TF_NEED_OPENCL:-0}"
 
-# Default to CPU-only builds for TensorFlow >= 2.21 to avoid relying on
-# stale CUDA/cuDNN defaults. To enable GPU builds, set TF_NEED_CUDA=1 and
-# provide compatible TF_CUDA_VERSION/TF_CUDNN_VERSION explicitly.
-export TF_NEED_CUDA="${TF_NEED_CUDA:-0}"
-export TF_CUDA_VERSION="${TF_CUDA_VERSION:-12.3}"
-export TF_CUDNN_VERSION="${TF_CUDNN_VERSION:-9}"
 export CUDA_TOOLKIT_PATH="${CUDA_TOOLKIT_PATH:-/usr/local/cuda}"
 export CUDNN_INSTALL_PATH="${CUDNN_INSTALL_PATH:-/usr/local/cuda}"
+export TF_CUDA_VERSION="${TF_CUDA_VERSION:-12.3}"
+export TF_CUDNN_VERSION="${TF_CUDNN_VERSION:-9}"
+
+# Enable CUDA by default when a CUDA toolkit appears available, but keep
+# CPU-only as the fallback in environments without CUDA. Users can always
+# override this explicitly with TF_NEED_CUDA=0/1.
+if [ -z "${TF_NEED_CUDA+x}" ]; then
+    if command -v nvcc >/dev/null 2>&1 || [ -d "${CUDA_TOOLKIT_PATH}" ]; then
+        export TF_NEED_CUDA=1
+    else
+        export TF_NEED_CUDA=0
+    fi
+fi
 
 # The compute capabilities define which GPUs can be used:
 # https://developer.nvidia.com/cuda-gpus#compute
