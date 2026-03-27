@@ -43,10 +43,12 @@ class EssentiaBuildExtension(build_ext):
             # waf expects option/value as separate argv entries for --arch.
             macos_arm64_flags = ['--arch', 'arm64', '--no-msse']
         windows_flags = []
+        static_deps_flags = ['--static-dependencies']
         if sys.platform.startswith('win'):
-            # Avoid mandatory FFTW/import-library linkage on Windows wheel builds
-            # and skip optional deps that do not ship usable MSVC import libs.
-            windows_flags = ['--fft=KISS', '--lightweight=libav,yaml']
+            # Avoid linking prepackaged x86 static deps on Windows wheels and
+            # minimize optional dependencies that often miss x64 import libs.
+            windows_flags = ['--fft=KISS', '--lightweight=']
+            static_deps_flags = []
 
         pkg_config_path = os.getenv('PKG_CONFIG_PATH')
         if sys.platform == 'darwin':
@@ -75,11 +77,11 @@ class EssentiaBuildExtension(build_ext):
 
         if var_only_python in os.environ and os.environ[var_only_python]=='1':
             print('Skipping building the core libessentia library (%s=1)' %  var_only_python)
-            subprocess.run([PYTHON,  'waf', 'configure', '--only-python', '--static-dependencies',
-                      '--prefix=tmp'] + windows_flags + macos_arm64_flags + pkg_config_flags, check=True)
+            subprocess.run([PYTHON,  'waf', 'configure', '--only-python',
+                      '--prefix=tmp'] + static_deps_flags + windows_flags + macos_arm64_flags + pkg_config_flags, check=True)
         else:
-            subprocess.run([PYTHON, 'waf', 'configure', '--build-static', '--static-dependencies',
-                      '--with-python', '--prefix=tmp'] + windows_flags + macos_arm64_flags + pkg_config_flags, check=True)
+            subprocess.run([PYTHON, 'waf', 'configure', '--build-static',
+                      '--with-python', '--prefix=tmp'] + static_deps_flags + windows_flags + macos_arm64_flags + pkg_config_flags, check=True)
         subprocess.run([PYTHON, 'waf'], check=True)
         subprocess.run([PYTHON, 'waf', 'install'], check=True)
 
