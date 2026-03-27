@@ -79,7 +79,7 @@ jobs:
             eigen3 fftw3 libsamplerate taglib libyaml ffmpeg
 
           $vcpkgInstalled = Join-Path $vcpkgRoot 'installed/x64-windows'
-          $eigenInclude = Join-Path $vcpkgInstalled 'include'
+          $eigenInclude = Join-Path $vcpkgInstalled 'include/eigen3'
           if (-not (Test-Path (Join-Path $eigenInclude 'unsupported/Eigen/CXX11/Tensor'))) {
             throw "vcpkg Eigen install does not contain unsupported/Eigen/CXX11/Tensor ($eigenInclude)."
           }
@@ -102,7 +102,8 @@ jobs:
           ) -join ';'
 
           $windowsIncludePaths = @(
-            (Join-Path $vcpkgInstalled 'include')
+            (Join-Path $vcpkgInstalled 'include'),
+            $eigenInclude
           ) -join ';'
 
           $windowsLibPaths = @(
