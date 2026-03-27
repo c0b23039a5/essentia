@@ -50,7 +50,6 @@ class EssentiaBuildExtension(build_ext):
             # minimize optional dependencies that often miss x64 import libs.
             windows_flags = ['--fft=KISS', '--lightweight=']
             static_deps_flags = []
-            build_static_flags = []
 
         pkg_config_path = os.getenv('PKG_CONFIG_PATH')
         if sys.platform == 'darwin':
