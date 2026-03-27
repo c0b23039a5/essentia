@@ -32,4 +32,13 @@ cd ../..
 rm -r tmp
 
 # patch libchromaprint.pc to add a missing link flag for fftw3f
-sed -i -e 's/-lchromaprint/-lchromaprint -lfftw3f/g' "${PREFIX}"/lib/pkgconfig/libchromaprint.pc
+pc_file=""
+if [ -f "${PREFIX}/lib/pkgconfig/libchromaprint.pc" ]; then
+  pc_file="${PREFIX}/lib/pkgconfig/libchromaprint.pc"
+elif [ -f "${PREFIX}/lib64/pkgconfig/libchromaprint.pc" ]; then
+  pc_file="${PREFIX}/lib64/pkgconfig/libchromaprint.pc"
+else
+  echo "libchromaprint.pc not found under ${PREFIX}/lib/pkgconfig or ${PREFIX}/lib64/pkgconfig"
+  exit 1
+fi
+sed -i -e 's/-lchromaprint/-lchromaprint -lfftw3f/g' "${pc_file}"

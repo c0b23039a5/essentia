@@ -7,7 +7,7 @@ environment = { PROJECT_NAME="essentia", ESSENTIA_PROJECT_NAME="${PROJECT_NAME}"
 before-all = [
   "PYBIN=$(ls -1 /opt/python/cp3*-cp3*/bin/python | head -n 1)",
   "PREFIX=/tmp/essentia-static-deps bash packaging/build_3rdparty_static_debian.sh",
-  "\"${PYBIN}\" waf configure --build-static --static-dependencies --pkg-config-path=\"/tmp/essentia-static-deps/lib/pkgconfig${PKG_CONFIG_PATH:+:${PKG_CONFIG_PATH}}\"",
+  "\"${PYBIN}\" waf configure --build-static --static-dependencies --pkg-config-path=\"/tmp/essentia-static-deps/lib/pkgconfig:/tmp/essentia-static-deps/lib64/pkgconfig${PKG_CONFIG_PATH:+:${PKG_CONFIG_PATH}}\"",
   "echo 'Note: libyaml pkg-config module is yaml-0.1 (ABI name); resolved version can be 0.2.x'",
   "echo 'Resolved dependency versions (pkg-config)' && for dep in eigen3 yaml-0.1 fftw3f libavcodec libavformat libavutil libswresample samplerate taglib libchromaprint; do if pkg-config --exists \"$dep\"; then echo \"$dep=$(pkg-config --modversion \"$dep\")\"; else echo \"$dep=not found\"; fi; done",
   "\"${PYBIN}\" waf",
