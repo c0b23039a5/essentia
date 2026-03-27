@@ -21,9 +21,9 @@ jobs:
       matrix:
         include:
           # Build wheels on Linux and macOS.
+          # NOTE: keep Linux on x86_64 only until an ARM dependency image/bootstrap
+          # is available for cibuildwheel's aarch64 manylinux container.
           - os: ubuntu-latest
-            config: cibuildwheel
-          - os: ubuntu-24.04-arm
             config: cibuildwheel
           - os: macos-26
             config: cibuildwheel
