@@ -44,11 +44,13 @@ class EssentiaBuildExtension(build_ext):
             macos_arm64_flags = ['--arch', 'arm64', '--no-msse']
         windows_flags = []
         static_deps_flags = ['--static-dependencies']
+        build_static_flags = ['--build-static']
         if sys.platform.startswith('win'):
             # Avoid linking prepackaged x86 static deps on Windows wheels and
             # minimize optional dependencies that often miss x64 import libs.
             windows_flags = ['--fft=KISS', '--lightweight=']
             static_deps_flags = []
+            build_static_flags = []
 
         pkg_config_path = os.getenv('PKG_CONFIG_PATH')
         if sys.platform == 'darwin':
@@ -80,8 +82,8 @@ class EssentiaBuildExtension(build_ext):
             subprocess.run([PYTHON,  'waf', 'configure', '--only-python',
                       '--prefix=tmp'] + static_deps_flags + windows_flags + macos_arm64_flags + pkg_config_flags, check=True)
         else:
-            subprocess.run([PYTHON, 'waf', 'configure', '--build-static',
-                      '--with-python', '--prefix=tmp'] + static_deps_flags + windows_flags + macos_arm64_flags + pkg_config_flags, check=True)
+            subprocess.run([PYTHON, 'waf', 'configure',
+                      '--with-python', '--prefix=tmp'] + build_static_flags + static_deps_flags + windows_flags + macos_arm64_flags + pkg_config_flags, check=True)
         subprocess.run([PYTHON, 'waf'], check=True)
         subprocess.run([PYTHON, 'waf', 'install'], check=True)
 
