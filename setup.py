@@ -3,6 +3,8 @@ import os
 import glob
 import subprocess
 import sys
+import site
+import sysconfig
 from setuptools import setup, Extension
 from setuptools.command.build_ext import build_ext
 from setuptools.command.install_lib import install_lib
@@ -95,14 +97,35 @@ class EssentiaBuildExtension(build_ext):
             # Alternate lowercase variant (some environments).
             os.path.join('tmp', 'lib', 'site-packages', 'essentia'),
         ]
+        # Some waf + setuptools build environments (notably Windows cibuildwheel)
+        # install the package directly into the active interpreter site-packages
+        # while still honoring --prefix for non-Python artifacts.
+        candidate_paths = []
+        for key in ('purelib', 'platlib'):
+            path = sysconfig.get_paths().get(key)
+            if path:
+                candidate_paths.append(os.path.join(path, 'essentia'))
+        try:
+            candidate_paths.extend([
+                os.path.join(path, 'essentia') for path in site.getsitepackages()
+            ])
+        except Exception:
+            pass
+        user_site = site.getusersitepackages()
+        if user_site:
+            candidate_paths.append(os.path.join(user_site, 'essentia'))
+
         matches = []
         for pattern in candidate_patterns:
             matches.extend(glob.glob(pattern))
+        for path in candidate_paths:
+            if os.path.isdir(path):
+                matches.append(path)
 
         if not matches:
             raise RuntimeError(
                 "Could not locate installed essentia package directory under tmp/. "
-                f"Tried: {candidate_patterns}"
+                f"Tried: {candidate_patterns + candidate_paths}"
             )
 
         library = matches[0]
