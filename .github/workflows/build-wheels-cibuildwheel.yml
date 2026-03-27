@@ -23,25 +23,15 @@ jobs:
           # Build wheels on Linux and macOS.
           - os: ubuntu-latest
             config: cibuildwheel
-            artifact_flavor: cpu
-            tf_need_cuda: "0"
           - os: macos-26
             config: cibuildwheel
-            artifact_flavor: cpu
-            tf_need_cuda: "0"
           - os: macos-26-intel
             config: cibuildwheel
-            artifact_flavor: cpu
-            tf_need_cuda: "0"
           # Build wheels on both Windows images too.
           - os: windows-2025
             config: cibuildwheel
-            artifact_flavor: cpu
-            tf_need_cuda: "0"
           - os: windows-2025-vs2026
             config: cibuildwheel
-            artifact_flavor: cpu
-            tf_need_cuda: "0"
 
     steps:
       - uses: actions/checkout@v6
@@ -133,17 +123,14 @@ jobs:
           INCLUDE: ${{ env.ESSENTIA_WINDOWS_INCLUDE_PATHS }};${{ env.ESSENTIA_WINDOWS_EIGEN_INCLUDE }};${{ env.INCLUDE }}
           CXXFLAGS: /I"${{ env.ESSENTIA_WINDOWS_EIGEN_INCLUDE }}"
           CFLAGS: /I"${{ env.ESSENTIA_WINDOWS_EIGEN_INCLUDE }}"
-          TF_NEED_CUDA: ${{ matrix.tf_need_cuda }}
         run: python -m cibuildwheel . --output-dir wheelhouse --config-file ${{ matrix.config }}.toml
 
       - name: Build wheels
         if: ${{ !startsWith(matrix.os, 'windows') }}
-        env:
-          TF_NEED_CUDA: ${{ matrix.tf_need_cuda }}
         run: python -m cibuildwheel . --output-dir wheelhouse --config-file ${{ matrix.config }}.toml
 
       - uses: actions/upload-artifact@v6
         if: ${{ !startsWith(matrix.os, 'windows') || steps.build_windows.outcome == 'success' }}
         with:
           path: ./wheelhouse/*.whl
-          name: artifact-${{ matrix.os }}-${{ matrix.config }}-${{ matrix.artifact_flavor }}
+          name: artifact-${{ matrix.os }}-${{ matrix.config }}
