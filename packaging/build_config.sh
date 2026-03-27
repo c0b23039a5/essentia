@@ -32,7 +32,6 @@ FFMPEG_AUDIO_FLAGS="
     --disable-avdevice
     --disable-swresample
     --disable-swscale
-    --disable-postproc
     --disable-avfilter
     --enable-swresample
 
@@ -188,6 +187,14 @@ FFMPEG_AUDIO_FLAGS="
     --enable-parser=vp8
 "
 
+# FFmpeg 8.x may require NASM for x86 assembly paths.
+# On manylinux ARM (and any environment without nasm), force portable C code.
+if ! command -v nasm >/dev/null 2>&1; then
+    FFMPEG_AUDIO_FLAGS="$FFMPEG_AUDIO_FLAGS
+    --disable-x86asm
+"
+fi
+
 FFMPEG_AUDIO_FLAGS_MUXERS="
     --enable-libmp3lame
     --enable-muxer=wav
@@ -209,6 +216,16 @@ FFTW_FLAGS="
     --with-incoming-stack-boundary=2
     --with-our-malloc16
 "
+
+# manylinux ARM runners do not support x86 SSE flags.
+# Keep FFTW portable there by dropping x86-only options.
+case "$(uname -m)" in
+    aarch64|arm64|armv7l|armv8l)
+        FFTW_FLAGS="
+    --enable-float
+"
+        ;;
+esac
 
 LIBSAMPLERATE_FLAGS="
     --disable-fftw
