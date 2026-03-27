@@ -118,13 +118,32 @@ def configure(ctx):
     ctx.env.WITH_CPPTESTS = ctx.options.WITH_CPPTESTS
 
     # compiler flags
-    ctx.env.CXXFLAGS = ['-std=' + ctx.options.STD]  # c++11 by default
+    if sys.platform == 'win32':
+        # `cl` does not understand GCC-style `-std=...` flags (warning D9002).
+        # Map requested language standard to MSVC form where available.
+        msvc_std_map = {
+            'c++14': '/std:c++14',
+            'c++17': '/std:c++17',
+            'c++20': '/std:c++20',
+            'c++23': '/std:c++latest',
+        }
+        # MSVC has no dedicated `/std:c++11`; its default mode already supports
+        # required C++11 features used by Essentia, so omit a std flag for that.
+        ctx.env.CXXFLAGS = [msvc_std_map[ctx.options.STD]] if ctx.options.STD in msvc_std_map else []
+    else:
+        ctx.env.CXXFLAGS = ['-std=' + ctx.options.STD]  # c++11 by default
 
     if sys.platform != 'win32':
         # msvc does not support -pipe
         ctx.env.CXXFLAGS += ['-pipe', '-Wall']
     else:
         ctx.env.CXXFLAGS += ['-W2', '-EHsc']
+        # Build with the dynamic MSVC runtime on Windows.
+        # Python extension modules are compiled/linked with /MD, so forcing the
+        # same runtime here prevents LNK2038 RuntimeLibrary mismatches when the
+        # `_essentia` module links against the local `essentia` static library.
+        ctx.env.CXXFLAGS += ['/MD']
+        ctx.env.CFLAGS += ['/MD']
 
     # Force using SSE floating point for all x86 platforms (default for 64-bit
     # in gcc) instead of 387 floating point (used for 32-bit in gcc) to avoid

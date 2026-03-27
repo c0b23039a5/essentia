@@ -86,7 +86,26 @@ class EssentiaBuildExtension(build_ext):
         subprocess.run([PYTHON, 'waf'], check=True)
         subprocess.run([PYTHON, 'waf', 'install'], check=True)
 
-        library = glob.glob('tmp/lib/python*/*-packages/essentia')[0]
+        # Locate installed python package path across platforms.
+        candidate_patterns = [
+            # POSIX installs via waf/python distutils.
+            os.path.join('tmp', 'lib', 'python*', '*-packages', 'essentia'),
+            # Windows installs.
+            os.path.join('tmp', 'Lib', 'site-packages', 'essentia'),
+            # Alternate lowercase variant (some environments).
+            os.path.join('tmp', 'lib', 'site-packages', 'essentia'),
+        ]
+        matches = []
+        for pattern in candidate_patterns:
+            matches.extend(glob.glob(pattern))
+
+        if not matches:
+            raise RuntimeError(
+                "Could not locate installed essentia package directory under tmp/. "
+                f"Tried: {candidate_patterns}"
+            )
+
+        library = matches[0]
 
 
 def get_git_version():
