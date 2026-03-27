@@ -210,6 +210,16 @@ FFTW_FLAGS="
     --with-our-malloc16
 "
 
+# manylinux ARM runners do not support x86 SSE flags.
+# Keep FFTW portable there by dropping x86-only options.
+case "$(uname -m)" in
+    aarch64|arm64|armv7l|armv8l)
+        FFTW_FLAGS="
+    --enable-float
+"
+        ;;
+esac
+
 LIBSAMPLERATE_FLAGS="
     --disable-fftw
     --disable-sndfile
