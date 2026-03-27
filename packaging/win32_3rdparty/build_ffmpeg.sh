@@ -1,18 +1,17 @@
 #!/usr/bin/env bash
-set -e
-. ../build_config.sh
+set -euo pipefail
+
+SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+. "$SCRIPT_DIR/common.sh"
 
 echo "Building FFmpeg $FFMPEG_VERSION"
 
-mux=$1
-if test "$1" = "--no-muxers"; then
+if [[ "${1:-}" == "--no-muxers" ]]; then
     echo Building FFmpeg without muxers
     FFMPEG_AUDIO_FLAGS_MUXERS=""
 fi
 
-rm -rf tmp
-mkdir tmp
-cd tmp
+prepare_build_dir
 
 curl -SLO https://ffmpeg.org/releases/$FFMPEG_VERSION.tar.gz
 tar xf $FFMPEG_VERSION.tar.gz
@@ -42,6 +41,3 @@ make install
 #cp libavcodec/avcodec-53.dll $PREFIX/lib
 #cp libavformat/avformat.dll $PREFIX/lib
 #cp libavformat/avformat-53.dll $PREFIX/lib
-
-cd ../..
-rm -r tmp
