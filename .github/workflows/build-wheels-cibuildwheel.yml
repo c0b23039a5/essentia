@@ -23,6 +23,8 @@ jobs:
           # Build wheels on Linux and macOS.
           - os: ubuntu-latest
             config: cibuildwheel
+          - os: ubuntu-24.04-arm
+            config: cibuildwheel
           - os: macos-26
             config: cibuildwheel
           - os: macos-26-intel

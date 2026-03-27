@@ -1,6 +1,4 @@
 [tool.cibuildwheel.linux]
-manylinux-x86_64-image = "mtgupf/essentia-builds:manylinux2014_x86_64"
-manylinux-i686-image = "mtgupf/essentia-builds:manylinux2014_i686"
 
 skip = ["*-musllinux*", "*i686", "*cp38*", "*cp3??t*"]
 
