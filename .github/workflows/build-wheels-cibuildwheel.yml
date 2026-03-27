@@ -110,11 +110,19 @@ jobs:
             (Join-Path $vcpkgInstalled 'lib')
           ) -join ';'
 
+          $pkgconfDir = Join-Path $vcpkgInstalled 'tools/pkgconf'
+          $pkgconfExe = Join-Path $pkgconfDir 'pkgconf.exe'
+          $pkgConfigExe = Join-Path $pkgconfDir 'pkg-config.exe'
+          if ((Test-Path $pkgconfExe) -and (-not (Test-Path $pkgConfigExe))) {
+            Copy-Item -Path $pkgconfExe -Destination $pkgConfigExe
+          }
+
           "ESSENTIA_WINDOWS_PKG_CONFIG_PATH=$pkgConfigPaths" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "ESSENTIA_WINDOWS_EIGEN_INCLUDE=$eigenInclude" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "ESSENTIA_WINDOWS_INCLUDE_PATHS=$windowsIncludePaths" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "ESSENTIA_WINDOWS_LIB_PATHS=$windowsLibPaths" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          "ESSENTIA_WINDOWS_PKG_CONFIG_EXE=$vcpkgInstalled/tools/pkgconf/pkgconf.exe" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "ESSENTIA_WINDOWS_PKG_CONFIG_DIR=$pkgconfDir" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "ESSENTIA_WINDOWS_PKG_CONFIG_EXE=$pkgConfigExe" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Build wheels (Windows amd64 only)
         id: build_windows
@@ -124,6 +132,7 @@ jobs:
           ESSENTIA_WHEEL_SKIP_3RDPARTY: "0"
           PKG_CONFIG: ${{ env.ESSENTIA_WINDOWS_PKG_CONFIG_EXE }}
           PKG_CONFIG_PATH: ${{ env.ESSENTIA_WINDOWS_PKG_CONFIG_PATH }}
+          PATH: ${{ env.ESSENTIA_WINDOWS_PKG_CONFIG_DIR }};${{ env.PATH }}
           INCLUDE: ${{ env.ESSENTIA_WINDOWS_INCLUDE_PATHS }};${{ env.ESSENTIA_WINDOWS_EIGEN_INCLUDE }};${{ env.INCLUDE }}
           LIB: ${{ env.ESSENTIA_WINDOWS_LIB_PATHS }};${{ env.LIB }}
           CXXFLAGS: /I"${{ env.ESSENTIA_WINDOWS_EIGEN_INCLUDE }}"
