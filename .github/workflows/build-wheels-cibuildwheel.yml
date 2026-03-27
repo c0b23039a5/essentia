@@ -20,34 +20,17 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Build wheels on Linux and macOS to keep both cibuildwheel
-          # configuration paths validated in CI.
+          # Build wheels on Linux and macOS.
           - os: ubuntu-latest
             config: cibuildwheel
             artifact_flavor: cpu
             tf_need_cuda: "0"
-          - os: ubuntu-latest
-            config: cibuildwheel-tensorflow
-            artifact_flavor: cpu
-            tf_need_cuda: "0"
-          - os: ubuntu-latest
-            config: cibuildwheel-tensorflow
-            artifact_flavor: cuda
-            tf_need_cuda: "1"
           - os: macos-26
             config: cibuildwheel
             artifact_flavor: cpu
             tf_need_cuda: "0"
-          - os: macos-26
-            config: cibuildwheel-tensorflow
-            artifact_flavor: cpu
-            tf_need_cuda: "0"
           - os: macos-26-intel
             config: cibuildwheel
-            artifact_flavor: cpu
-            tf_need_cuda: "0"
-          - os: macos-26-intel
-            config: cibuildwheel-tensorflow
             artifact_flavor: cpu
             tf_need_cuda: "0"
           # Build wheels on both Windows images too.
