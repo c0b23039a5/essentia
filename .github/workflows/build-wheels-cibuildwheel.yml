@@ -98,7 +98,7 @@ jobs:
           }
           & (Join-Path $vcpkgRoot 'bootstrap-vcpkg.bat')
           & (Join-Path $vcpkgRoot 'vcpkg.exe') install --triplet x64-windows `
-            eigen3 fftw3 libsamplerate taglib libyaml ffmpeg pkgconf
+            eigen3 fftw3 libsamplerate taglib libyaml ffmpeg chromaprint pkgconf
 
           $vcpkgInstalled = Join-Path $vcpkgRoot 'installed/x64-windows'
           $eigenInclude = Join-Path $vcpkgInstalled 'include/eigen3'

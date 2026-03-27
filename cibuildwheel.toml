@@ -56,3 +56,10 @@ before-all = [
 # With Homebrew FFmpeg, delocate can bundle linked dylibs directly.
 # For arm64, thin universal binaries to arm64 first, then run delocate.
 repair-wheel-command = "python packaging/repair_macos_arm64_wheel.py {wheel} {dest_dir} {delocate_archs}"
+
+
+[tool.cibuildwheel.windows]
+
+skip = ["*cp38*", "*cp3??t*", "*-win32"]
+
+test-command = "python test/smoke/test_optional_dependencies.py"
