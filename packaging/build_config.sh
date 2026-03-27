@@ -187,6 +187,14 @@ FFMPEG_AUDIO_FLAGS="
     --enable-parser=vp8
 "
 
+# FFmpeg 8.x may require NASM for x86 assembly paths.
+# On manylinux ARM (and any environment without nasm), force portable C code.
+if ! command -v nasm >/dev/null 2>&1; then
+    FFMPEG_AUDIO_FLAGS="$FFMPEG_AUDIO_FLAGS
+    --disable-x86asm
+"
+fi
+
 FFMPEG_AUDIO_FLAGS_MUXERS="
     --enable-libmp3lame
     --enable-muxer=wav
