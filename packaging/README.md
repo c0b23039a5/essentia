@@ -17,3 +17,4 @@
 
 - The legacy Travis-based wheel build flow has been removed in favor of GitHub Actions + cibuildwheel.
 - Both static build entry points use the same ordered library build list for easier maintenance.
+- `win32_3rdparty/common.sh`: shared setup/cleanup helpers for Windows dependency builds.

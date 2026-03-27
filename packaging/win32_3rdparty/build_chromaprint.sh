@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-set -e
-. ../build_config.sh
+set -euo pipefail
 
-rm -rf tmp
-mkdir tmp
-cd tmp
+SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+. "$SCRIPT_DIR/common.sh"
+
+prepare_build_dir
 
 echo "Building chromaprint $CHROMAPRINT_VERSION"
 
@@ -23,7 +23,6 @@ set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
 "
 echo "$CHROMAPRINT_TOOLCHAIN" > $CHROMAPRINT_VERSION_toolchain.cmake
 
-
 cmake \
     -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
     -DCMAKE_INSTALL_PREFIX=$PREFIX \
@@ -39,9 +38,6 @@ cmake \
 
 make
 make install
-
-cd ../..
-rm -r tmp
 
 # patch libchromaprint.pc to add a missing link flag for fftw3f
 sed -i -e 's/-lchromaprint/-lchromaprint -lfftw3f/g' "${PREFIX}"/lib/pkgconfig/libchromaprint.pc

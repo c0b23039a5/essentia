@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-set -e
-. ../build_config.sh
+set -euo pipefail
 
-rm -rf tmp
-mkdir tmp
-cd tmp
+SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+. "$SCRIPT_DIR/common.sh"
+
+prepare_build_dir
 
 echo "Building taglib $TAGLIB_VERSION"
 
@@ -30,14 +30,11 @@ cmake \
     -DCMAKE_TOOLCHAIN_FILE=${TAGLIB_VERSION}_toolchain.cmake \
     -DBUILD_SHARED_LIBS=OFF \
     -DZLIB_ROOT=$PREFIX \
-	.
+    .
 make
 # patch taglib.cp (missing -lz flag)
 sed -i 's/-ltag/-ltag -lz/g' taglib.pc
 make install
-
-cd ../..
-rm -r tmp
 
 # TODO Unnecessary?
 #mv $PREFIX/bin/libtag.dll $PREFIX/lib

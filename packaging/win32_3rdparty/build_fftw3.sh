@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-set -e
-. ../build_config.sh
+set -euo pipefail
 
-rm -rf tmp
-mkdir tmp
-cd tmp
+SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+. "$SCRIPT_DIR/common.sh"
+
+prepare_build_dir
 
 echo "Building fftw $FFTW_VERSION"
 
@@ -26,6 +26,3 @@ make install
 
 # TODO Unnecessary?
 #cp .libs/libfftw3f-3.dll $PREFIX/lib
-
-cd ../..
-rm -r tmp

@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-set -e
-. ../build_config.sh
+set -euo pipefail
 
-rm -rf tmp
-mkdir tmp
-cd tmp
+SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+. "$SCRIPT_DIR/common.sh"
+
+prepare_build_dir
 
 echo "Building libsamplerate $LIBSAMPLERATE_VERSION"
 
@@ -23,6 +23,3 @@ make install
 
 # TODO Unnecessary?
 #cp src/.libs/libsamplerate-0.dll $PREFIX/lib/libsamplerate.dll
-
-cd ../..
-rm -r tmp
