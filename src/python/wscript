@@ -5,6 +5,7 @@ from __future__ import print_function
 
 import distutils.sysconfig
 import os
+import sys
 
 
 def options(ctx):
@@ -21,6 +22,16 @@ def configure(ctx):
 
     ctx.check_python_headers(features='pyext')
     ctx.check_python_module('numpy')
+
+    if sys.platform == 'win32':
+        # Waf's Python toolchain defaults may add legacy MSVC flags.
+        # Drop deprecated/contradicting options and use modern C++ exceptions.
+        ctx.env.CFLAGS_PYEXT = [f for f in ctx.env.CFLAGS_PYEXT
+                                if f not in ('/W3', '/GX')]
+        ctx.env.CXXFLAGS_PYEXT = [f for f in ctx.env.CXXFLAGS_PYEXT
+                                  if f not in ('/W3', '/GX')]
+        ctx.env.CFLAGS_PYEXT += ['/EHsc', '/w']
+        ctx.env.CXXFLAGS_PYEXT += ['/EHsc', '/w']
 
     # A monkey patch to remove the -lpythonX.Ym flag. PEP 513 recommends to
     # avoid explicit linking to libpythonX.Y.so.1, however python-config still
@@ -58,7 +69,7 @@ def build(ctx):
         target   = '_essentia',
         features = 'pyext',
         includes = NUMPY_INCPATH + [ '.', 'pytypes' ] + (ctx.env.INCLUDES_ESSENTIA if ctx.env.ONLY_PYTHON else adjust(ctx.env.INCLUDES, '..')),
-        cxxflags = [ '-w' ],
+        cxxflags = ['/w'] if sys.platform == 'win32' else ['-w'],
         install_path = '${PYTHONDIR}/essentia',
         use      = ctx.env.USE_LIBS if ctx.env.ONLY_PYTHON else ['essentia'] # + ctx.env.USE_LIBS
     )
