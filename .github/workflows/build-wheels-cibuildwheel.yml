@@ -113,7 +113,7 @@ jobs:
           @(
             'Name: eigen3',
             'Description: Eigen3',
-            'Version: latest',
+            'Version: 3.4.0',
             "Cflags: -I$eigenIncludePosix"
           ) | Out-File -FilePath (Join-Path $pcDir 'eigen3.pc') -Encoding ascii
 
