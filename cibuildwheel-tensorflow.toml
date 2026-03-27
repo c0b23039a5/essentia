@@ -12,6 +12,7 @@ environment = { PROJECT_NAME="essentia-tensorflow", ESSENTIA_PROJECT_NAME="${PRO
 before-all = [
   "PYBIN=$(ls -1 /opt/python/cp3*-cp3*/bin/python | head -n 1)",
   "\"${PYBIN}\" waf configure --with-gaia --with-tensorflow --build-static --static-dependencies --pkg-config-path=\"${PKG_CONFIG_PATH}\"",
+  "echo 'Note: libyaml pkg-config module is yaml-0.1 (ABI name); resolved version can be 0.2.x'",
   "echo 'Resolved dependency versions (pkg-config)' && for dep in eigen3 yaml-0.1 fftw3f libavcodec libavformat libavutil libswresample samplerate taglib libchromaprint tensorflow libtensorflow; do if pkg-config --exists \"$dep\"; then echo \"$dep=$(pkg-config --modversion \"$dep\")\"; else echo \"$dep=not found\"; fi; done",
   "\"${PYBIN}\" waf",
   "\"${PYBIN}\" waf install",
@@ -39,6 +40,7 @@ before-all = [
   # To keep it simple, just use the bottles available for tensorflow.
   "brew install tensorflow libtensorflow",
   "echo 'Resolved dependency versions (brew)' && brew list --versions eigen@3 libyaml fftw ffmpeg libsamplerate libtag chromaprint tensorflow libtensorflow",
+  "echo 'Note: libyaml pkg-config module is yaml-0.1 (ABI name); resolved version can be 0.2.x'",
   "echo 'Resolved dependency versions (pkg-config)' && for dep in eigen3 yaml-0.1 fftw3f libavcodec libavformat libavutil libswresample samplerate taglib libchromaprint tensorflow libtensorflow; do if pkg-config --exists \"$dep\"; then echo \"$dep=$(pkg-config --modversion \"$dep\")\"; else echo \"$dep=not found\"; fi; done",
   # ---
   # Building tensorflow from source:
@@ -78,6 +80,7 @@ before-all = [
   # To keep it simple, just use the bottles available for tensorflow.
   "brew install tensorflow libtensorflow",
   "echo 'Resolved dependency versions (brew)' && brew list --versions eigen@3 libyaml fftw ffmpeg libsamplerate libtag chromaprint tensorflow libtensorflow",
+  "echo 'Note: libyaml pkg-config module is yaml-0.1 (ABI name); resolved version can be 0.2.x'",
   "echo 'Resolved dependency versions (pkg-config)' && for dep in eigen3 yaml-0.1 fftw3f libavcodec libavformat libavutil libswresample samplerate taglib libchromaprint tensorflow libtensorflow; do if pkg-config --exists \"$dep\"; then echo \"$dep=$(pkg-config --modversion \"$dep\")\"; else echo \"$dep=not found\"; fi; done",
   # ---
   # Building tensorflow from source:
