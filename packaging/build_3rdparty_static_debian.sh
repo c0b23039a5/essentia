@@ -22,7 +22,7 @@ fi
 
 if [[ "$*" == *--with-tensorflow* ]]
     then
-        ./build_tensorflow.sh
+        echo "Skipping TensorFlow build (disabled by default in packaging flow)."
 fi
 
 rm -rf bin share

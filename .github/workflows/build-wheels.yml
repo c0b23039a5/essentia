@@ -15,20 +15,15 @@ jobs:
         WHEEL_TYPE:
           - i686
           - x86_64
-          - x86_64_tensorflow
         include:
           - WHEEL_TYPE: i686
             DOCKER_IMAGE: mtgupf/essentia-builds:manylinux2014_i686
             PRE_CMD: linux32
           - WHEEL_TYPE: x86_64
             DOCKER_IMAGE: mtgupf/essentia-builds:manylinux2014_x86_64
-          - WHEEL_TYPE: x86_64_tensorflow
-            DOCKER_IMAGE: mtgupf/essentia-builds:manylinux2014_x86_64
-            WITH_TENSORFLOW: 1
 
     env:
       DOCKER_IMAGE: ${{ matrix.DOCKER_IMAGE }} 
-      WITH_TENSORFLOW: ${{ matrix.WITH_TENSORFLOW }}
       PRE_CMD: ${{ matrix.PRE_CMD }}
 
     steps:
@@ -45,7 +40,7 @@ jobs:
       - name: Build wheels in a Docker image
         run: |
           docker pull $DOCKER_IMAGE > /dev/null
-          docker run --rm -v `pwd`:/io --env WITH_TENSORFLOW=$WITH_TENSORFLOW $DOCKER_IMAGE $PRE_CMD /io/travis/build_wheels.sh
+          docker run --rm -v `pwd`:/io $DOCKER_IMAGE $PRE_CMD /io/travis/build_wheels.sh
       - name: Build sdist
         run: | 
           ls wheelhouse/

@@ -2,13 +2,28 @@
 set -e
 . ../build_config.sh
 
+TENSORFLOW_BUILD_VARIANT="${1:-auto}"
+case "${TENSORFLOW_BUILD_VARIANT}" in
+  cpu)
+    export TF_NEED_CUDA=0
+    ;;
+  gpu)
+    export TF_NEED_CUDA=1
+    ;;
+  auto)
+    ;;
+  *)
+    echo "Usage: $0 [auto|cpu|gpu]"
+    exit 1
+    ;;
+esac
 
 rm -rf tmp
 mkdir tmp
 cd tmp
 
 
-echo "Building Tensorflow $TENSORFLOW_VERSION"
+echo "Building Tensorflow $TENSORFLOW_VERSION (variant: ${TENSORFLOW_BUILD_VARIANT}, TF_NEED_CUDA=${TF_NEED_CUDA})"
 
 curl -SLO https://github.com/tensorflow/tensorflow/archive/v$TENSORFLOW_VERSION.tar.gz
 tar -xf v$TENSORFLOW_VERSION.tar.gz

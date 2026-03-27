@@ -8,7 +8,7 @@ cd tmp
 
 echo "Building libyaml $LIBYAML_VERSION"
 
-curl -SLO http://pyyaml.org/download/libyaml/$LIBYAML_VERSION.tar.gz
+curl -SLO https://github.com/yaml/libyaml/releases/download/${LIBYAML_VERSION#yaml-}/$LIBYAML_VERSION.tar.gz
 tar -xf $LIBYAML_VERSION.tar.gz
 cd $LIBYAML_VERSION
 

@@ -10,7 +10,7 @@ echo "Building chromaprint $CHROMAPRINT_VERSION"
 
 curl -SLO https://github.com/acoustid/chromaprint/releases/download/v$CHROMAPRINT_VERSION/chromaprint-$CHROMAPRINT_VERSION.tar.gz
 tar -xf chromaprint-$CHROMAPRINT_VERSION.tar.gz
-cd chromaprint-v$CHROMAPRINT_VERSION
+cd chromaprint-$CHROMAPRINT_VERSION
 
 CHROMAPRINT_TOOLCHAIN="
 SET(CMAKE_SYSTEM_NAME Windows)

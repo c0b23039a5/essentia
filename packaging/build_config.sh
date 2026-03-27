@@ -11,18 +11,18 @@ SHARED_OR_STATIC="
 --enable-static
 "
 
-EIGEN_VERSION=3.3.7
-FFMPEG_VERSION=ffmpeg-7.1.1
+EIGEN_VERSION=3.4.1
+FFMPEG_VERSION=ffmpeg-8.1
 LAME_VERSION=3.100
-TAGLIB_VERSION=taglib-1.11.1
-ZLIB_VERSION=zlib-1.2.12
-FFTW_VERSION=fftw-3.3.2
-LIBSAMPLERATE_VERSION=libsamplerate-0.1.8
-LIBYAML_VERSION=yaml-0.1.5
-CHROMAPRINT_VERSION=1.5.1
-QT_SOURCE_URL=https://download.qt.io/archive/qt/4.8/4.8.4/qt-everywhere-opensource-src-4.8.4.tar.gz
+TAGLIB_VERSION=taglib-2.2.1
+ZLIB_VERSION=zlib-1.3.2
+FFTW_VERSION=fftw-3.3.10
+LIBSAMPLERATE_VERSION=libsamplerate-0.2.2
+LIBYAML_VERSION=yaml-0.2.5
+CHROMAPRINT_VERSION=1.6.0
+QT_SOURCE_URL=https://download.qt.io/archive/qt/4.8/4.8.7/qt-everywhere-opensource-src-4.8.7.tar.gz
 GAIA_VERSION=2.4.6-86-ged433ed
-TENSORFLOW_VERSION=2.5.0
+TENSORFLOW_VERSION=2.21.0
 
 FFMPEG_AUDIO_FLAGS="
     --disable-programs
@@ -278,8 +278,7 @@ TENSORFLOW_FLAGS="
 # through env variables:
 # https://github.com/tensorflow/tensorflow/issues/8527#issuecomment-289272898
 #
-# Set the required TensorFlow build env variables with CUDA support if they
-# were not cofigured yet:
+# Set the required TensorFlow build env variables:
 export PYTHON_BIN_PATH="${PYTHON_BIN_PATH:-python3}"
 export USE_DEFAULT_PYTHON_LIB_PATH="${USE_DEFAULT_PYTHON_LIB_PATH:-1}"
 export BAZEL_LINKLIBS="${BAZEL_LINKLIBS:--l%:libstdc++.a}"
@@ -290,22 +289,30 @@ export TF_NEED_HDFS="${TF_NEED_HDFS:-0}"
 export TF_ENABLE_XLA="${TF_ENABLE_XLA:-0}"
 export TF_NEED_OPENCL="${TF_NEED_OPENCL:-0}"
 
-# TensorFlow CUDA versions intended for TensorFlow 2.5
-# For future updates check the GPU compatibility chart:
-# https://www.tensorflow.org/install/source#gpu
-export TF_NEED_CUDA="${TF_NEED_CUDA:-1}"
-export TF_CUDA_VERSION="${TF_CUDA_VERSION:-11.2}"
-export TF_CUDNN_VERSION="${TF_CUDNN_VERSION:-8.1}"
 export CUDA_TOOLKIT_PATH="${CUDA_TOOLKIT_PATH:-/usr/local/cuda}"
 export CUDNN_INSTALL_PATH="${CUDNN_INSTALL_PATH:-/usr/local/cuda}"
+export TF_CUDA_VERSION="${TF_CUDA_VERSION:-12.3}"
+export TF_CUDNN_VERSION="${TF_CUDNN_VERSION:-9}"
+
+# Enable CUDA by default when a CUDA toolkit appears available, but keep
+# CPU-only as the fallback in environments without CUDA. Users can always
+# override this explicitly with TF_NEED_CUDA=0/1.
+if [ -z "${TF_NEED_CUDA+x}" ]; then
+    if command -v nvcc >/dev/null 2>&1 || [ -d "${CUDA_TOOLKIT_PATH}" ]; then
+        export TF_NEED_CUDA=1
+    else
+        export TF_NEED_CUDA=0
+    fi
+fi
 
 # The compute capabilities define which GPUs can be used:
 # https://developer.nvidia.com/cuda-gpus#compute
 # Supporting more versions increases the library size, so
 # for the moment it is set to a conservative number that
 # covers some of the most popular dee'p learning GPUs:
-# 3.5: Geforce GT XXX
-# 5.2: Geforce GTX TITAN X
-# 7.5: Geforce RTX 2080 (Ti)
-# 8.6: Geforce RTX 30XX
-export TF_CUDA_COMPUTE_CAPABILITIES="${TF_CUDA_COMPUTE_CAPABILITIES:-3.5,5.2,7.5,8.6}"
+# 7.5: Turing (e.g. RTX 20xx)
+# 8.0: Ampere A100
+# 8.6: Ampere (e.g. RTX 30xx)
+# 8.9: Ada (e.g. RTX 40xx)
+# 9.0: Hopper (H100)
+export TF_CUDA_COMPUTE_CAPABILITIES="${TF_CUDA_COMPUTE_CAPABILITIES:-7.5,8.0,8.6,8.9,9.0}"

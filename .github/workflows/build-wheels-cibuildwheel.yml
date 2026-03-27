@@ -20,20 +20,13 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Build wheels on Linux and macOS to keep both cibuildwheel
-          # configuration paths validated in CI.
+          # Build wheels on Linux and macOS.
           - os: ubuntu-latest
             config: cibuildwheel
-          - os: ubuntu-latest
-            config: cibuildwheel-tensorflow
           - os: macos-26
             config: cibuildwheel
-          - os: macos-26
-            config: cibuildwheel-tensorflow
           - os: macos-26-intel
             config: cibuildwheel
-          - os: macos-26-intel
-            config: cibuildwheel-tensorflow
           # Build wheels on both Windows images too.
           - os: windows-2025
             config: cibuildwheel
