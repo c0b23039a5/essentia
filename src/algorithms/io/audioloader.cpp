@@ -267,14 +267,8 @@ AlgorithmStatus AudioLoader::process() {
                 }
 
                 int nChannels = _audioCtx ? _audioCtx->ch_layout.nb_channels : 0;
-                if (nChannels <= 0 && _audioCtx) {
-                    nChannels = _audioCtx->channels;
-                }
                 if (nChannels <= 0 && codecParams) {
                     nChannels = codecParams->ch_layout.nb_channels;
-                }
-                if (nChannels <= 0 && codecParams) {
-                    nChannels = codecParams->channels;
                 }
 
                 Real sampleRate = _audioCtx ? _audioCtx->sample_rate : 0;
@@ -324,20 +318,11 @@ AlgorithmStatus AudioLoader::process() {
         }
 
         int nChannels = _decodedFrame ? _decodedFrame->ch_layout.nb_channels : 0;
-        if (nChannels <= 0 && _decodedFrame) {
-            nChannels = _decodedFrame->channels;
-        }
         if (nChannels <= 0 && _audioCtx) {
             nChannels = _audioCtx->ch_layout.nb_channels;
         }
-        if (nChannels <= 0 && _audioCtx) {
-            nChannels = _audioCtx->channels;
-        }
         if (nChannels <= 0 && codecParams) {
             nChannels = codecParams->ch_layout.nb_channels;
-        }
-        if (nChannels <= 0 && codecParams) {
-            nChannels = codecParams->channels;
         }
 
         Real sampleRate = _decodedFrame ? _decodedFrame->sample_rate : 0;
