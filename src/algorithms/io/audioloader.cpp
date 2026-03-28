@@ -217,7 +217,7 @@ AlgorithmStatus AudioLoader::process() {
         throw EssentiaException("AudioLoader: Trying to call process() on an AudioLoader algo which hasn't been correctly configured.");
     }
 
-    if (!_metadataSent) {
+    if (!_metadataSent && _metadataChannels > 0 && _metadataSampleRate > 0) {
         pushChannelsSampleRateInfo(_metadataChannels, _metadataSampleRate);
         pushCodecInfo(_metadataCodec, _metadataBitRate);
         _metadataSent = true;
@@ -238,33 +238,9 @@ AlgorithmStatus AudioLoader::process() {
             }
             shouldStop(true);
             flushPacket();
-            if (!_metadataSent) {
-                AVCodecParameters* codecParams = 0;
-                if (_demuxCtx && _streamIdx >= 0 && _streamIdx < (int)_demuxCtx->nb_streams &&
-                    _demuxCtx->streams[_streamIdx]) {
-                    codecParams = _demuxCtx->streams[_streamIdx]->codecpar;
-                }
-
-                int nChannels = _audioCtx ? _audioCtx->ch_layout.nb_channels : 0;
-                if (nChannels <= 0 && codecParams) {
-                    nChannels = codecParams->ch_layout.nb_channels;
-                }
-
-                Real sampleRate = _audioCtx ? _audioCtx->sample_rate : 0;
-                if (sampleRate <= 0 && codecParams) {
-                    sampleRate = codecParams->sample_rate;
-                }
-
-                int bitRate = _audioCtx ? _audioCtx->bit_rate : 0;
-                if (bitRate <= 0 && codecParams) {
-                    bitRate = codecParams->bit_rate;
-                }
-                if (bitRate < 0) {
-                    bitRate = 0;
-                }
-
-                pushChannelsSampleRateInfo(nChannels, sampleRate);
-                pushCodecInfo(_audioCodec ? _audioCodec->name : "", bitRate);
+            if (!_metadataSent && _metadataChannels > 0 && _metadataSampleRate > 0) {
+                pushChannelsSampleRateInfo(_metadataChannels, _metadataSampleRate);
+                pushCodecInfo(_metadataCodec, _metadataBitRate);
                 _metadataSent = true;
             }
             closeAudioFile();
@@ -290,42 +266,23 @@ AlgorithmStatus AudioLoader::process() {
     int consumed = decodePacket();
 
     if (!_metadataSent && _dataSize > 0) {
-        AVCodecParameters* codecParams = 0;
-        if (_demuxCtx && _streamIdx >= 0 && _streamIdx < (int)_demuxCtx->nb_streams &&
-            _demuxCtx->streams[_streamIdx]) {
-            codecParams = _demuxCtx->streams[_streamIdx]->codecpar;
+        int nChannels = _metadataChannels;
+        if (nChannels <= 0 && _decodedFrame) {
+            nChannels = _decodedFrame->ch_layout.nb_channels;
         }
 
-        int nChannels = _decodedFrame ? _decodedFrame->ch_layout.nb_channels : 0;
-        if (nChannels <= 0 && _audioCtx) {
-            nChannels = _audioCtx->ch_layout.nb_channels;
-        }
-        if (nChannels <= 0 && codecParams) {
-            nChannels = codecParams->ch_layout.nb_channels;
+        Real sampleRate = _metadataSampleRate;
+        if (sampleRate <= 0 && _decodedFrame) {
+            sampleRate = _decodedFrame->sample_rate;
         }
 
-        Real sampleRate = _decodedFrame ? _decodedFrame->sample_rate : 0;
-        if (sampleRate <= 0 && _audioCtx) {
-            sampleRate = _audioCtx->sample_rate;
+        if (nChannels > 0 && sampleRate > 0) {
+            _metadataChannels = nChannels;
+            _metadataSampleRate = sampleRate;
+            pushChannelsSampleRateInfo(_metadataChannels, _metadataSampleRate);
+            pushCodecInfo(_metadataCodec, _metadataBitRate);
+            _metadataSent = true;
         }
-        if (sampleRate <= 0 && codecParams) {
-            sampleRate = codecParams->sample_rate;
-        }
-
-        int bitRate = _audioCtx ? _audioCtx->bit_rate : 0;
-        if (bitRate <= 0 && codecParams) {
-            bitRate = codecParams->bit_rate;
-        }
-        if (bitRate <= 0 && _demuxCtx) {
-            bitRate = _demuxCtx->bit_rate;
-        }
-        if (bitRate < 0) {
-            bitRate = 0;
-        }
-
-        pushChannelsSampleRateInfo(nChannels, sampleRate);
-        pushCodecInfo(_audioCodec ? _audioCodec->name : "", bitRate);
-        _metadataSent = true;
     }
 
     // After decodePacket we may have produced audio in _buffer (bytes in _dataSize).
