@@ -217,6 +217,33 @@ AlgorithmStatus AudioLoader::process() {
         throw EssentiaException("AudioLoader: Trying to call process() on an AudioLoader algo which hasn't been correctly configured.");
     }
 
+    if (!_metadataSent) {
+        AVCodecParameters* codecParams = 0;
+        if (_demuxCtx && _streamIdx >= 0 && _streamIdx < (int)_demuxCtx->nb_streams &&
+            _demuxCtx->streams[_streamIdx]) {
+            codecParams = _demuxCtx->streams[_streamIdx]->codecpar;
+        }
+
+        int nChannels = _audioCtx ? _audioCtx->ch_layout.nb_channels : 0;
+        if (nChannels <= 0 && codecParams) {
+            nChannels = codecParams->ch_layout.nb_channels;
+        }
+
+        Real sampleRate = _audioCtx ? _audioCtx->sample_rate : 0;
+        if (sampleRate <= 0 && codecParams) {
+            sampleRate = codecParams->sample_rate;
+        }
+
+        int bitRate = _audioCtx ? _audioCtx->bit_rate : 0;
+        if (bitRate <= 0 && codecParams) {
+            bitRate = codecParams->bit_rate;
+        }
+
+        pushChannelsSampleRateInfo(nChannels, sampleRate);
+        pushCodecInfo(_audioCodec ? _audioCodec->name : "", bitRate);
+        _metadataSent = true;
+    }
+
     // read frames until we get a good one
     do {
         int result = av_read_frame(_demuxCtx, &_packet);
@@ -521,24 +548,16 @@ void AudioLoader::reset() {
     closeAudioFile();
     openAudioFile(filename);
 
-    AVCodecParameters* codecParams = 0;
-    if (_demuxCtx && _streamIdx >= 0 && _streamIdx < (int)_demuxCtx->nb_streams &&
-        _demuxCtx->streams[_streamIdx]) {
-        codecParams = _demuxCtx->streams[_streamIdx]->codecpar;
-    }
+    _metadataSent = false;
 
-    int nChannels = _audioCtx->ch_layout.nb_channels;
-    if (nChannels <= 0 && codecParams) {
-        nChannels = codecParams->ch_layout.nb_channels;
+    _nChannels = _audioCtx ? _audioCtx->ch_layout.nb_channels : 0;
+    if (_nChannels <= 0 && _demuxCtx && _streamIdx >= 0 &&
+        _streamIdx < (int)_demuxCtx->nb_streams && _demuxCtx->streams[_streamIdx]) {
+        AVCodecParameters* codecParams = _demuxCtx->streams[_streamIdx]->codecpar;
+        if (codecParams) {
+            _nChannels = codecParams->ch_layout.nb_channels;
+        }
     }
-
-    Real sampleRate = _audioCtx->sample_rate;
-    if (sampleRate <= 0 && codecParams) {
-        sampleRate = codecParams->sample_rate;
-    }
-
-    pushChannelsSampleRateInfo(nChannels, sampleRate);
-    pushCodecInfo(_audioCodec->name, _audioCtx->bit_rate);
 }
 
 } // namespace streaming
