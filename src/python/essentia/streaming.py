@@ -200,6 +200,17 @@ def _reloadStreamingAlgorithms():
 
 _reloadStreamingAlgorithms()
 
+
+def __getattr__(name):
+    # Some binary builds can expose different algorithm sets. Support late
+    # resolution of generated classes and provide a better error when an
+    # algorithm is not available in the current build.
+    if name in algorithmNames():
+        _create_streaming_algo(name)
+        return getattr(_sys.modules[__name__], name)
+
+    raise AttributeError("module '%s' has no attribute '%s'" % (__name__, name))
+
 # This subclass provides some more functionality for VectorInput
 class VectorInput(_essentia.VectorInput):
     __doc__ = 'VectorInput v1.0\n\n\n'+\

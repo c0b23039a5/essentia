@@ -16,6 +16,7 @@
 # version 3 along with this program. If not, see http://www.gnu.org/licenses/
 
 import numpy
+import os
 from six import iteritems
 from . import _essentia
 
@@ -263,6 +264,11 @@ def determineEdt(obj):
 # Converts 'data' to 'goalType'. 'goalType' must be a non-intermediate EDT. If
 # a conversion cannot be made, a TypeError will be raised.
 def convertData(data, goalType):
+    if goalType == Edt.STRING:
+        path_like_type = getattr(os, 'PathLike', None)
+        if path_like_type is not None and isinstance(data, path_like_type):
+            return os.fspath(data)
+
     origType = determineEdt(data)
 
     if origType == goalType:

@@ -144,3 +144,13 @@ _reloadAlgorithms()
 # load derived descriptors and other ones written in python
 from .algorithms import create_python_algorithms as _create_python_algorithms
 _create_python_algorithms(_sys.modules[__name__])
+
+
+def __getattr__(name):
+    # Some binary builds can expose different algorithm sets. Support late
+    # resolution of generated classes and provide a better error when an
+    # algorithm is not available in the current build.
+    if name in _essentia.keys():
+        return _create_essentia_class(name)
+
+    raise AttributeError("module '%s' has no attribute '%s'" % (__name__, name))
