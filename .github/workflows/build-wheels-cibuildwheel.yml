@@ -16,6 +16,9 @@ jobs:
   build_wheels:
     name: Build wheels on ${{ matrix.os }} / ${{ matrix.config }}
     runs-on: ${{ matrix.os }}
+    env:
+      # cibuildwheel mounts ${{ github.workspace }} at /project inside Linux containers.
+      ESSENTIA_STATIC_DEPS_DIR: ${{ github.workspace }}/.cibw-cache/essentia-static-deps
     strategy:
       fail-fast: false
       matrix:
@@ -83,11 +86,15 @@ jobs:
       - name: Install cibuildwheel
         run: python -m pip install cibuildwheel==3.4.0
 
+      - name: Ensure Linux static dependency cache path exists
+        if: ${{ startsWith(matrix.os, 'ubuntu') }}
+        run: mkdir -p "${ESSENTIA_STATIC_DEPS_DIR}"
+
       - name: Cache Linux before-all static dependencies
         if: ${{ startsWith(matrix.os, 'ubuntu') }}
         uses: actions/cache@v5
         with:
-          path: .cibw-cache/essentia-static-deps
+          path: ${{ env.ESSENTIA_STATIC_DEPS_DIR }}
           key: linux-static-deps-${{ matrix.os }}-${{ hashFiles('cibuildwheel.toml', 'packaging/build_3rdparty_static_debian.sh', 'packaging/debian_3rdparty/*.sh') }}
           restore-keys: |
             linux-static-deps-${{ matrix.os }}-
@@ -183,6 +190,11 @@ jobs:
       - name: Build wheels
         if: ${{ !startsWith(matrix.os, 'windows') }}
         run: python -m cibuildwheel . --output-dir wheelhouse --config-file ${{ matrix.config }}.toml
+
+      - name: Verify Linux static dependencies cache was populated
+        if: ${{ startsWith(matrix.os, 'ubuntu') }}
+        run: |
+          test -f "${ESSENTIA_STATIC_DEPS_DIR}/lib/pkgconfig/fftw3f.pc"
 
       - uses: actions/upload-artifact@v6
         if: ${{ !startsWith(matrix.os, 'windows') || steps.build_windows.outcome == 'success' }}
