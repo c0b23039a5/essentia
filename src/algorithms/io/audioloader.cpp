@@ -521,14 +521,20 @@ void AudioLoader::reset() {
     closeAudioFile();
     openAudioFile(filename);
 
+    AVCodecParameters* codecParams = 0;
+    if (_demuxCtx && _streamIdx >= 0 && _streamIdx < (int)_demuxCtx->nb_streams &&
+        _demuxCtx->streams[_streamIdx]) {
+        codecParams = _demuxCtx->streams[_streamIdx]->codecpar;
+    }
+
     int nChannels = _audioCtx->ch_layout.nb_channels;
-    if (nChannels <= 0 && _streams[_selectedStream] && _streams[_selectedStream]->codecpar) {
-        nChannels = _streams[_selectedStream]->codecpar->ch_layout.nb_channels;
+    if (nChannels <= 0 && codecParams) {
+        nChannels = codecParams->ch_layout.nb_channels;
     }
 
     Real sampleRate = _audioCtx->sample_rate;
-    if (sampleRate <= 0 && _streams[_selectedStream] && _streams[_selectedStream]->codecpar) {
-        sampleRate = _streams[_selectedStream]->codecpar->sample_rate;
+    if (sampleRate <= 0 && codecParams) {
+        sampleRate = codecParams->sample_rate;
     }
 
     pushChannelsSampleRateInfo(nChannels, sampleRate);
