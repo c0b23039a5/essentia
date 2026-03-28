@@ -67,6 +67,10 @@ class AudioLoader : public Algorithm {
   int _selectedStream;
   bool _configured;
   bool _metadataSent;
+  int _metadataChannels;
+  Real _metadataSampleRate;
+  int _metadataBitRate;
+  std::string _metadataCodec;
 
 
   void openAudioFile(const std::string& filename);
@@ -84,7 +88,8 @@ class AudioLoader : public Algorithm {
  public:
   AudioLoader() : Algorithm(), _buffer(0),  _demuxCtx(0),
 	          _audioCtx(0), _audioCodec(0), _decodedFrame(0),
-            _convertCtxAv(0), _configured(false), _metadataSent(false) {
+            _convertCtxAv(0), _configured(false), _metadataSent(false),
+            _metadataChannels(0), _metadataSampleRate(0), _metadataBitRate(0) {
 
     declareOutput(_audio, 1, "audio", "the input audio signal");
     declareOutput(_sampleRate, 0, "sampleRate", "the sampling rate of the audio signal [Hz]");

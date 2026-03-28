@@ -218,29 +218,8 @@ AlgorithmStatus AudioLoader::process() {
     }
 
     if (!_metadataSent) {
-        AVCodecParameters* codecParams = 0;
-        if (_demuxCtx && _streamIdx >= 0 && _streamIdx < (int)_demuxCtx->nb_streams &&
-            _demuxCtx->streams[_streamIdx]) {
-            codecParams = _demuxCtx->streams[_streamIdx]->codecpar;
-        }
-
-        int nChannels = _audioCtx ? _audioCtx->ch_layout.nb_channels : 0;
-        if (nChannels <= 0 && codecParams) {
-            nChannels = codecParams->ch_layout.nb_channels;
-        }
-
-        Real sampleRate = _audioCtx ? _audioCtx->sample_rate : 0;
-        if (sampleRate <= 0 && codecParams) {
-            sampleRate = codecParams->sample_rate;
-        }
-
-        int bitRate = _audioCtx ? _audioCtx->bit_rate : 0;
-        if (bitRate <= 0 && codecParams) {
-            bitRate = codecParams->bit_rate;
-        }
-
-        pushChannelsSampleRateInfo(nChannels, sampleRate);
-        pushCodecInfo(_audioCodec ? _audioCodec->name : "", bitRate);
+        pushChannelsSampleRateInfo(_metadataChannels, _metadataSampleRate);
+        pushCodecInfo(_metadataCodec, _metadataBitRate);
         _metadataSent = true;
     }
 
@@ -617,15 +596,39 @@ void AudioLoader::reset() {
     openAudioFile(filename);
 
     _metadataSent = false;
+    _metadataChannels = 0;
+    _metadataSampleRate = 0;
+    _metadataBitRate = 0;
+    _metadataCodec = _audioCodec ? _audioCodec->name : "";
 
-    _nChannels = _audioCtx ? _audioCtx->ch_layout.nb_channels : 0;
-    if (_nChannels <= 0 && _demuxCtx && _streamIdx >= 0 &&
-        _streamIdx < (int)_demuxCtx->nb_streams && _demuxCtx->streams[_streamIdx]) {
-        AVCodecParameters* codecParams = _demuxCtx->streams[_streamIdx]->codecpar;
-        if (codecParams) {
-            _nChannels = codecParams->ch_layout.nb_channels;
-        }
+    AVCodecParameters* codecParams = 0;
+    if (_demuxCtx && _streamIdx >= 0 && _streamIdx < (int)_demuxCtx->nb_streams &&
+        _demuxCtx->streams[_streamIdx]) {
+        codecParams = _demuxCtx->streams[_streamIdx]->codecpar;
     }
+
+    _metadataChannels = _audioCtx ? _audioCtx->ch_layout.nb_channels : 0;
+    if (_metadataChannels <= 0 && codecParams) {
+        _metadataChannels = codecParams->ch_layout.nb_channels;
+    }
+
+    _metadataSampleRate = _audioCtx ? _audioCtx->sample_rate : 0;
+    if (_metadataSampleRate <= 0 && codecParams) {
+        _metadataSampleRate = codecParams->sample_rate;
+    }
+
+    _metadataBitRate = _audioCtx ? _audioCtx->bit_rate : 0;
+    if (_metadataBitRate <= 0 && codecParams) {
+        _metadataBitRate = codecParams->bit_rate;
+    }
+    if (_metadataBitRate <= 0 && _demuxCtx) {
+        _metadataBitRate = _demuxCtx->bit_rate;
+    }
+    if (_metadataBitRate < 0) {
+        _metadataBitRate = 0;
+    }
+
+    _nChannels = _metadataChannels;
 }
 
 } // namespace streaming
