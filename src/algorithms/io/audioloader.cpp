@@ -217,6 +217,12 @@ AlgorithmStatus AudioLoader::process() {
         throw EssentiaException("AudioLoader: Trying to call process() on an AudioLoader algo which hasn't been correctly configured.");
     }
 
+    if (!_metadataSent) {
+        pushChannelsSampleRateInfo(_metadataChannels, _metadataSampleRate);
+        pushCodecInfo(_metadataCodec, _metadataBitRate);
+        _metadataSent = true;
+    }
+
     // read frames until we get a good one
     do {
         int result = av_read_frame(_demuxCtx, &_packet);
@@ -521,24 +527,40 @@ void AudioLoader::reset() {
     closeAudioFile();
     openAudioFile(filename);
 
+    _metadataSent = false;
+    _metadataChannels = 0;
+    _metadataSampleRate = 0;
+    _metadataBitRate = 0;
+    _metadataCodec = _audioCodec ? _audioCodec->name : "";
+
     AVCodecParameters* codecParams = 0;
     if (_demuxCtx && _streamIdx >= 0 && _streamIdx < (int)_demuxCtx->nb_streams &&
         _demuxCtx->streams[_streamIdx]) {
         codecParams = _demuxCtx->streams[_streamIdx]->codecpar;
     }
 
-    int nChannels = _audioCtx->ch_layout.nb_channels;
-    if (nChannels <= 0 && codecParams) {
-        nChannels = codecParams->ch_layout.nb_channels;
+    _metadataChannels = _audioCtx ? _audioCtx->ch_layout.nb_channels : 0;
+    if (_metadataChannels <= 0 && codecParams) {
+        _metadataChannels = codecParams->ch_layout.nb_channels;
     }
 
-    Real sampleRate = _audioCtx->sample_rate;
-    if (sampleRate <= 0 && codecParams) {
-        sampleRate = codecParams->sample_rate;
+    _metadataSampleRate = _audioCtx ? _audioCtx->sample_rate : 0;
+    if (_metadataSampleRate <= 0 && codecParams) {
+        _metadataSampleRate = codecParams->sample_rate;
     }
 
-    pushChannelsSampleRateInfo(nChannels, sampleRate);
-    pushCodecInfo(_audioCodec->name, _audioCtx->bit_rate);
+    _metadataBitRate = _audioCtx ? _audioCtx->bit_rate : 0;
+    if (_metadataBitRate <= 0 && codecParams) {
+        _metadataBitRate = codecParams->bit_rate;
+    }
+    if (_metadataBitRate <= 0 && _demuxCtx) {
+        _metadataBitRate = _demuxCtx->bit_rate;
+    }
+    if (_metadataBitRate < 0) {
+        _metadataBitRate = 0;
+    }
+
+    _nChannels = _metadataChannels;
 }
 
 } // namespace streaming
