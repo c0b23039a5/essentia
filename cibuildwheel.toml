@@ -2,12 +2,13 @@
 
 skip = ["*-musllinux*", "*i686", "*cp38*", "*cp3??t*"]
 
-environment = { PROJECT_NAME="essentia", ESSENTIA_PROJECT_NAME="${PROJECT_NAME}", ESSENTIA_WHEEL_SKIP_3RDPARTY=1, ESSENTIA_WHEEL_ONLY_PYTHON=0, PKG_CONFIG_PATH="/tmp/essentia-static-deps/lib/pkgconfig:/tmp/essentia-static-deps/lib64/pkgconfig:/usr/local/lib/pkgconfig:/usr/local/lib64/pkgconfig" }
+environment = { PROJECT_NAME="essentia", ESSENTIA_PROJECT_NAME="${PROJECT_NAME}", ESSENTIA_WHEEL_SKIP_3RDPARTY=1, ESSENTIA_WHEEL_ONLY_PYTHON=0, PKG_CONFIG_PATH="/project/.cibw-cache/essentia-static-deps/lib/pkgconfig:/project/.cibw-cache/essentia-static-deps/lib64/pkgconfig:/usr/local/lib/pkgconfig:/usr/local/lib64/pkgconfig" }
 
 before-all = [
   "PYBIN=$(ls -1 /opt/python/cp3*-cp3*/bin/python | head -n 1)",
-  "PREFIX=/tmp/essentia-static-deps bash packaging/build_3rdparty_static_debian.sh",
-  "\"${PYBIN}\" waf configure --build-static --static-dependencies --pkg-config-path=\"/tmp/essentia-static-deps/lib/pkgconfig:/tmp/essentia-static-deps/lib64/pkgconfig${PKG_CONFIG_PATH:+:${PKG_CONFIG_PATH}}\"",
+  "mkdir -p /project/.cibw-cache/essentia-static-deps",
+  "if [ ! -f /project/.cibw-cache/essentia-static-deps/lib/pkgconfig/fftw3f.pc ]; then PREFIX=/project/.cibw-cache/essentia-static-deps bash packaging/build_3rdparty_static_debian.sh; else echo 'Using cached Linux static dependencies from /project/.cibw-cache/essentia-static-deps'; fi",
+  "\"${PYBIN}\" waf configure --build-static --static-dependencies --pkg-config-path=\"/project/.cibw-cache/essentia-static-deps/lib/pkgconfig:/project/.cibw-cache/essentia-static-deps/lib64/pkgconfig${PKG_CONFIG_PATH:+:${PKG_CONFIG_PATH}}\"",
   "echo 'Note: libyaml pkg-config module is yaml-0.1 (ABI name); resolved version can be 0.2.x'",
   "echo 'Resolved dependency versions (pkg-config)' && for dep in eigen3 yaml-0.1 fftw3f libavcodec libavformat libavutil libswresample samplerate taglib libchromaprint; do if pkg-config --exists \"$dep\"; then echo \"$dep=$(pkg-config --modversion \"$dep\")\"; else echo \"$dep=not found\"; fi; done",
   "\"${PYBIN}\" waf",

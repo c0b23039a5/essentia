@@ -14,6 +14,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: .github/workflows/build-docs.yml
       - name: Fetch release tags from GitHub
         # Workaround for https://github.com/actions/checkout/issues/290
         run: git fetch --tags --force

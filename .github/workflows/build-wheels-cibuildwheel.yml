@@ -49,6 +49,8 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: "3.14"
+          cache: "pip"
+          cache-dependency-path: .github/workflows/build-wheels-cibuildwheel.yml
 
       - name: Initialize MSVC environment (without ilammy/msvc-dev-cmd)
         if: ${{ startsWith(matrix.os, 'windows') }}
@@ -80,6 +82,24 @@ jobs:
 
       - name: Install cibuildwheel
         run: python -m pip install cibuildwheel==3.4.0
+
+      - name: Cache Linux before-all static dependencies
+        if: ${{ startsWith(matrix.os, 'ubuntu') }}
+        uses: actions/cache@v5
+        with:
+          path: .cibw-cache/essentia-static-deps
+          key: linux-static-deps-${{ matrix.os }}-${{ hashFiles('cibuildwheel.toml', 'packaging/build_3rdparty_static_debian.sh', 'packaging/debian_3rdparty/*.sh') }}
+          restore-keys: |
+            linux-static-deps-${{ matrix.os }}-
+
+      - name: Cache vcpkg dependencies
+        if: ${{ startsWith(matrix.os, 'windows') }}
+        uses: actions/cache@v5
+        with:
+          path: ${{ runner.temp }}/vcpkg
+          key: vcpkg-${{ matrix.os }}-${{ hashFiles('.github/workflows/build-wheels-cibuildwheel.yml') }}
+          restore-keys: |
+            vcpkg-${{ matrix.os }}-
 
 
       - name: Prepare Windows pkg-config dependencies
