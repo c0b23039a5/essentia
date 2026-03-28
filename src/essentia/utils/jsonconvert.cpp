@@ -35,12 +35,13 @@ void JsonConvert::skipSpaces() {
 
 int JsonConvert::countBackSlashes() {
   // counts a number of '\' chars following together right before the current position
-  int i = _pos - 1;
+  int pos = static_cast<int>(_pos);
+  int i = pos - 1;
 
   while(i >= 0 && _str[i] == '\\') {
     i--;
   }
-  return -_pos - 1 - i;
+  return pos - 1 - i;
 }
 
 

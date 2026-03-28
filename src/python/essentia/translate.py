@@ -269,22 +269,37 @@ def translate(composite_algo, output_filename, dot_graph=False):
     for algo in streaming_algos:
         algo.configure = algo.real_configure
 
+    def _optional_streaming_classes(*class_names):
+        available = []
+        for class_name in class_names:
+            cls = getattr(streaming, class_name, None)
+            if inspect.isclass(cls):
+                available.append(cls)
+        return tuple(available)
+
+    forbidden_audio_loader_classes = _optional_streaming_classes('AudioLoader',
+                                                                 'EasyLoader',
+                                                                 'MonoLoader',
+                                                                 'EqloudLoader')
+    forbidden_audio_writer_classes = _optional_streaming_classes('AudioWriter',
+                                                                 'MonoWriter')
+    forbidden_file_output_classes = _optional_streaming_classes('FileOutput')
+
     ### Do some checking on their network ###
     for algo in [ logitem['instance'] for logitem in configure_log.values() ]:
         if isinstance(algo, streaming.VectorInput):
             raise TypeError('essentia.streaming.VectorInput algorithms are not allowed for translatable composite algorithms')
 
-        if isinstance(algo, streaming.AudioLoader) or \
-           isinstance(algo, streaming.EasyLoader) or \
-           isinstance(algo, streaming.MonoLoader) or \
-           isinstance(algo, streaming.EqloudLoader):
+        if forbidden_audio_loader_classes and \
+           isinstance(algo, forbidden_audio_loader_classes):
             raise TypeError('No type of AudioLoader is allowed for translatable composite algorithms')
 
-        if isinstance(algo, streaming.AudioWriter) or \
-           isinstance(algo, streaming.MonoWriter):
+        if forbidden_audio_writer_classes and \
+           isinstance(algo, forbidden_audio_writer_classes):
             raise TypeError('No type of AudioWriter is allowed for translatable composite algorithms')
 
-        if isinstance(algo, streaming.FileOutput):
+        if forbidden_file_output_classes and \
+           isinstance(algo, forbidden_file_output_classes):
             raise TypeError('essentia.streaming.FileOutput algorithms are not allowed for translatable composite algorithms')
 
 
@@ -582,4 +597,3 @@ const char* '''+composite_algo.__name__+'''::description = DOC("");\n\n'''
         f = open(output_filename+'.dot', 'w')
         f.write(dot_code)
         f.close()
-

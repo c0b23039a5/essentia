@@ -29,8 +29,12 @@ using namespace std;
 namespace essentia {
 
 #ifdef OS_WIN32
+#ifndef _S_IREAD
 #define _S_IREAD 256
+#endif
+#ifndef _S_IWRITE
 #define _S_IWRITE 128
+#endif
 int mkstemp(char *tmpl) {
   int ret=-1;
 
