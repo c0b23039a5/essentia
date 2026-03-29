@@ -51,7 +51,8 @@ int guessChannelCount(const AVCodecContext* audioCtx,
 
 Real guessSampleRate(const AVCodecContext* audioCtx,
                     const AVCodecParameters* codecParams,
-                    const AVFrame* decodedFrame) {
+                    const AVFrame* decodedFrame,
+                    const AVStream* stream) {
     int sampleRate = 0;
 
     if (audioCtx) {
@@ -62,6 +63,10 @@ Real guessSampleRate(const AVCodecContext* audioCtx,
     }
     if (sampleRate <= 0 && decodedFrame) {
         sampleRate = decodedFrame->sample_rate;
+    }
+    if (sampleRate <= 0 && stream && stream->time_base.num == 1 && stream->time_base.den > 0) {
+        // Common FFmpeg convention for audio streams is time_base = 1/sample_rate.
+        sampleRate = stream->time_base.den;
     }
     return (Real) sampleRate;
 }
@@ -268,6 +273,11 @@ AlgorithmStatus AudioLoader::process() {
         pushChannelsSampleRateInfo(_metadataChannels, _metadataSampleRate);
         pushCodecInfo(_metadataCodec, _metadataBitRate);
         _metadataSent = true;
+        _codecInfoSent = true;
+    } else if (!_metadataSent && !_codecInfoSent && !_metadataCodec.empty()) {
+        // Emit codec/bit-rate metadata even if sample-rate/channels are still unknown.
+        pushCodecInfo(_metadataCodec, _metadataBitRate);
+        _codecInfoSent = true;
     }
 
     // read frames until we get a good one
@@ -286,19 +296,25 @@ AlgorithmStatus AudioLoader::process() {
             shouldStop(true);
             flushPacket();
             if (!_metadataSent) {
+                AVStream* stream = 0;
                 AVCodecParameters* codecParams = 0;
                 if (_demuxCtx && _streamIdx >= 0 && _streamIdx < (int)_demuxCtx->nb_streams &&
                     _demuxCtx->streams[_streamIdx]) {
+                    stream = _demuxCtx->streams[_streamIdx];
                     codecParams = _demuxCtx->streams[_streamIdx]->codecpar;
                 }
                 _metadataChannels = guessChannelCount(_audioCtx, codecParams, _decodedFrame);
-                _metadataSampleRate = guessSampleRate(_audioCtx, codecParams, _decodedFrame);
+                if (_metadataChannels <= 0 && _nChannels > 0) {
+                    _metadataChannels = _nChannels;
+                }
+                _metadataSampleRate = guessSampleRate(_audioCtx, codecParams, _decodedFrame, stream);
             }
             if (!_metadataSent && _metadataChannels > 0 && _metadataSampleRate > 0) {
                 _nChannels = _metadataChannels;
                 pushChannelsSampleRateInfo(_metadataChannels, _metadataSampleRate);
                 pushCodecInfo(_metadataCodec, _metadataBitRate);
                 _metadataSent = true;
+                _codecInfoSent = true;
             }
             closeAudioFile();
             if (_computeMD5) {
@@ -323,13 +339,18 @@ AlgorithmStatus AudioLoader::process() {
     int consumed = decodePacket();
 
     if (!_metadataSent && _dataSize > 0) {
+        AVStream* stream = 0;
         AVCodecParameters* codecParams = 0;
         if (_demuxCtx && _streamIdx >= 0 && _streamIdx < (int)_demuxCtx->nb_streams &&
             _demuxCtx->streams[_streamIdx]) {
+            stream = _demuxCtx->streams[_streamIdx];
             codecParams = _demuxCtx->streams[_streamIdx]->codecpar;
         }
         int nChannels = guessChannelCount(_audioCtx, codecParams, _decodedFrame);
-        Real sampleRate = guessSampleRate(_audioCtx, codecParams, _decodedFrame);
+        if (nChannels <= 0 && _nChannels > 0) {
+            nChannels = _nChannels;
+        }
+        Real sampleRate = guessSampleRate(_audioCtx, codecParams, _decodedFrame, stream);
 
         if (nChannels > 0 && sampleRate > 0) {
             _metadataChannels = nChannels;
@@ -338,6 +359,7 @@ AlgorithmStatus AudioLoader::process() {
             pushChannelsSampleRateInfo(_metadataChannels, _metadataSampleRate);
             pushCodecInfo(_metadataCodec, _metadataBitRate);
             _metadataSent = true;
+            _codecInfoSent = true;
         }
     }
 
@@ -625,6 +647,7 @@ void AudioLoader::reset() {
     openAudioFile(filename);
 
     _metadataSent = false;
+    _codecInfoSent = false;
     _metadataChannels = 0;
     _metadataSampleRate = 0;
     _metadataBitRate = 0;
@@ -637,7 +660,9 @@ void AudioLoader::reset() {
     }
 
     _metadataChannels = guessChannelCount(_audioCtx, codecParams, 0);
-    _metadataSampleRate = guessSampleRate(_audioCtx, codecParams, 0);
+    AVStream* stream = (_demuxCtx && _streamIdx >= 0 && _streamIdx < (int)_demuxCtx->nb_streams) ?
+        _demuxCtx->streams[_streamIdx] : 0;
+    _metadataSampleRate = guessSampleRate(_audioCtx, codecParams, 0, stream);
 
     _metadataBitRate = _audioCtx ? _audioCtx->bit_rate : 0;
     if (_metadataBitRate <= 0 && codecParams) {
