@@ -168,8 +168,13 @@ void AudioLoader::openAudioFile(const string& filename) {
     if (_audioCtx->ch_layout.nb_channels > 0) {
         layout = _audioCtx->ch_layout;
     } else {
-        // Fallback for older codecs that might not have channel layout set
-        av_channel_layout_default(&layout, _audioCtx->ch_layout.nb_channels);
+        // Fallback when decoder context does not expose a complete layout yet.
+        int fallbackChannels = guessChannelCount(_audioCtx, codecParams, 0);
+        if (fallbackChannels <= 0) {
+            avcodec_free_context(&_audioCtx);
+            throw EssentiaException("AudioLoader: Could not determine channel count from stream metadata");
+        }
+        av_channel_layout_default(&layout, fallbackChannels);
     }
 
     E_DEBUG(EAlgorithm, "AudioLoader: using sample format conversion from libswresample");
@@ -450,6 +455,14 @@ void AudioLoader::flushPacket() {
             break;
         }
 
+        if (_nChannels <= 0) {
+            _nChannels = guessChannelCount(_audioCtx, 0, _decodedFrame);
+        }
+        if (_nChannels <= 0) {
+            E_WARNING("AudioLoader: could not determine channel count while flushing decoder");
+            break;
+        }
+
         // got a frame -> convert to floats as in decodePacket()
         int inputSamples = _decodedFrame->nb_samples;
         int outPlaneSize = av_samples_get_buffer_size(NULL, _nChannels, inputSamples, AV_SAMPLE_FMT_FLT, 1);
@@ -512,6 +525,14 @@ int AudioLoader::decodePacket() {
         char errstring[1204];
         av_strerror(receive_result, errstring, sizeof(errstring));
         E_WARNING("AudioLoader: avcodec_receive_frame error: " << errstring);
+        return 0;
+    }
+
+    if (_nChannels <= 0) {
+        _nChannels = guessChannelCount(_audioCtx, 0, _decodedFrame);
+    }
+    if (_nChannels <= 0) {
+        E_WARNING("AudioLoader: could not determine channel count from decoded frame");
         return 0;
     }
 

@@ -86,7 +86,7 @@ class AudioLoader : public Algorithm {
 
 
  public:
-  AudioLoader() : Algorithm(), _buffer(0),  _demuxCtx(0),
+  AudioLoader() : Algorithm(), _nChannels(0), _buffer(0),  _demuxCtx(0),
 	          _audioCtx(0), _audioCodec(0), _decodedFrame(0),
             _convertCtxAv(0), _configured(false), _metadataSent(false),
             _metadataChannels(0), _metadataSampleRate(0), _metadataBitRate(0) {
