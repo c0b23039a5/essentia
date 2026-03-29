@@ -26,6 +26,48 @@ using namespace std;
 namespace essentia {
 namespace streaming {
 
+namespace {
+
+int channelCountFromLayout(const AVChannelLayout& layout) {
+    return layout.nb_channels;
+}
+
+int guessChannelCount(const AVCodecContext* audioCtx,
+                      const AVCodecParameters* codecParams,
+                      const AVFrame* decodedFrame) {
+    int nChannels = 0;
+
+    if (audioCtx) {
+        nChannels = channelCountFromLayout(audioCtx->ch_layout);
+    }
+    if (nChannels <= 0 && codecParams) {
+        nChannels = channelCountFromLayout(codecParams->ch_layout);
+    }
+    if (nChannels <= 0 && decodedFrame) {
+        nChannels = channelCountFromLayout(decodedFrame->ch_layout);
+    }
+    return nChannels;
+}
+
+Real guessSampleRate(const AVCodecContext* audioCtx,
+                    const AVCodecParameters* codecParams,
+                    const AVFrame* decodedFrame) {
+    int sampleRate = 0;
+
+    if (audioCtx) {
+        sampleRate = audioCtx->sample_rate;
+    }
+    if (sampleRate <= 0 && codecParams) {
+        sampleRate = codecParams->sample_rate;
+    }
+    if (sampleRate <= 0 && decodedFrame) {
+        sampleRate = decodedFrame->sample_rate;
+    }
+    return (Real) sampleRate;
+}
+
+} // namespace
+
 const char* AudioLoader::name = essentia::standard::AudioLoader::name;
 const char* AudioLoader::category = essentia::standard::AudioLoader::category;
 const char* AudioLoader::description = essentia::standard::AudioLoader::description;
@@ -238,7 +280,17 @@ AlgorithmStatus AudioLoader::process() {
             }
             shouldStop(true);
             flushPacket();
+            if (!_metadataSent) {
+                AVCodecParameters* codecParams = 0;
+                if (_demuxCtx && _streamIdx >= 0 && _streamIdx < (int)_demuxCtx->nb_streams &&
+                    _demuxCtx->streams[_streamIdx]) {
+                    codecParams = _demuxCtx->streams[_streamIdx]->codecpar;
+                }
+                _metadataChannels = guessChannelCount(_audioCtx, codecParams, _decodedFrame);
+                _metadataSampleRate = guessSampleRate(_audioCtx, codecParams, _decodedFrame);
+            }
             if (!_metadataSent && _metadataChannels > 0 && _metadataSampleRate > 0) {
+                _nChannels = _metadataChannels;
                 pushChannelsSampleRateInfo(_metadataChannels, _metadataSampleRate);
                 pushCodecInfo(_metadataCodec, _metadataBitRate);
                 _metadataSent = true;
@@ -266,19 +318,18 @@ AlgorithmStatus AudioLoader::process() {
     int consumed = decodePacket();
 
     if (!_metadataSent && _dataSize > 0) {
-        int nChannels = _metadataChannels;
-        if (nChannels <= 0 && _decodedFrame) {
-            nChannels = _decodedFrame->ch_layout.nb_channels;
+        AVCodecParameters* codecParams = 0;
+        if (_demuxCtx && _streamIdx >= 0 && _streamIdx < (int)_demuxCtx->nb_streams &&
+            _demuxCtx->streams[_streamIdx]) {
+            codecParams = _demuxCtx->streams[_streamIdx]->codecpar;
         }
-
-        Real sampleRate = _metadataSampleRate;
-        if (sampleRate <= 0 && _decodedFrame) {
-            sampleRate = _decodedFrame->sample_rate;
-        }
+        int nChannels = guessChannelCount(_audioCtx, codecParams, _decodedFrame);
+        Real sampleRate = guessSampleRate(_audioCtx, codecParams, _decodedFrame);
 
         if (nChannels > 0 && sampleRate > 0) {
             _metadataChannels = nChannels;
             _metadataSampleRate = sampleRate;
+            _nChannels = _metadataChannels;
             pushChannelsSampleRateInfo(_metadataChannels, _metadataSampleRate);
             pushCodecInfo(_metadataCodec, _metadataBitRate);
             _metadataSent = true;
@@ -564,15 +615,8 @@ void AudioLoader::reset() {
         codecParams = _demuxCtx->streams[_streamIdx]->codecpar;
     }
 
-    _metadataChannels = _audioCtx ? _audioCtx->ch_layout.nb_channels : 0;
-    if (_metadataChannels <= 0 && codecParams) {
-        _metadataChannels = codecParams->ch_layout.nb_channels;
-    }
-
-    _metadataSampleRate = _audioCtx ? _audioCtx->sample_rate : 0;
-    if (_metadataSampleRate <= 0 && codecParams) {
-        _metadataSampleRate = codecParams->sample_rate;
-    }
+    _metadataChannels = guessChannelCount(_audioCtx, codecParams, 0);
+    _metadataSampleRate = guessSampleRate(_audioCtx, codecParams, 0);
 
     _metadataBitRate = _audioCtx ? _audioCtx->bit_rate : 0;
     if (_metadataBitRate <= 0 && codecParams) {
@@ -586,6 +630,10 @@ void AudioLoader::reset() {
     }
 
     _nChannels = _metadataChannels;
+    if (_nChannels <= 0 && _audioCtx) {
+        // Keep conversion path operational even when stream metadata is incomplete.
+        _nChannels = guessChannelCount(_audioCtx, 0, 0);
+    }
 }
 
 } // namespace streaming
