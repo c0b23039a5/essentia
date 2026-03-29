@@ -755,6 +755,37 @@ void AudioLoader::compute() {
     bit_rate = (int) _pool.value<Real>("internal.bit_rate");
     codec = _pool.value<std::string>("internal.codec");
 
+    // Fallback: some FFmpeg builds can decode audio but still miss metadata in AudioLoader.
+    // MetadataReader is more robust for file-level sample-rate/channels extraction.
+    if (sampleRate <= 0 || numberChannels <= 0 || bit_rate <= 0) {
+        Algorithm* metadataReader = AlgorithmFactory::create("MetadataReader");
+        metadataReader->configure("filename", parameter("filename").toString(),
+                                  "failOnError", false);
+
+        int metadataDuration = 0;
+        int metadataBitrateKbps = 0;
+        int metadataSampleRate = 0;
+        int metadataChannels = 0;
+        metadataReader->output("duration").set(metadataDuration);
+        metadataReader->output("bitrate").set(metadataBitrateKbps);
+        metadataReader->output("sampleRate").set(metadataSampleRate);
+        metadataReader->output("channels").set(metadataChannels);
+        metadataReader->compute();
+
+        if (sampleRate <= 0 && metadataSampleRate > 0) {
+            sampleRate = metadataSampleRate;
+        }
+        if (numberChannels <= 0 && metadataChannels > 0) {
+            numberChannels = metadataChannels;
+        }
+        // MetadataReader reports kb/s. AudioLoader output bit_rate is in b/s.
+        if (bit_rate <= 0 && metadataBitrateKbps > 0) {
+            bit_rate = metadataBitrateKbps * 1000;
+        }
+
+        delete metadataReader;
+    }
+
     // reset, so it is ready to load audio again
     reset();
 }
