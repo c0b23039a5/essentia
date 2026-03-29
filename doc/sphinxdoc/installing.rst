@@ -208,6 +208,33 @@ Building Essentia on Windows
 
 Essentia C++ library and extractors based on it can be compiled and run correctly on Windows, but Python bindings are not supported yet. The easiest way to build Essentia is by `cross-compilation on Linux using MinGW <FAQ.html#cross-compiling-for-windows-on-linux>`_. However the resulting library binaries are only compatible within C++ projects using MinGW compilers, and therefore they are not compatible with Visual Studio. If you want to use Visual Studio, there is no project readily available, so you will have to setup one yourself and compile the dependencies too.
 
+Building Essentia natively with MSYS2/MinGW-w64
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+You can also build Essentia directly on Windows using an MSYS2 MinGW shell.
+
+1. Install `MSYS2 <https://www.msys2.org/>`_ and open the **MSYS2 MinGW 64-bit** shell.
+2. Update the base system and MinGW packages::
+
+     pacman -Syu
+     pacman -Su
+     pacman -S --needed base-devel mingw-w64-x86_64-toolchain \
+       mingw-w64-x86_64-pkgconf mingw-w64-x86_64-fftw \
+       mingw-w64-x86_64-taglib mingw-w64-x86_64-libsndfile \
+       mingw-w64-x86_64-yaml-cpp
+
+3. From the Essentia source tree, configure and build::
+
+     ./waf configure --with-static-examples --with-vamp
+     ./waf
+
+4. (Optional) install into the MinGW prefix::
+
+     ./waf install
+
+If ``pkg-config`` fails to locate a dependency, verify that you are running in a MinGW shell and that ``/mingw64/bin`` is in your ``PATH``.
+In this repository, the same native Windows path is validated in CI by ``.github/workflows/build-windows-msys2.yml``.
+
 Building Essentia in Windows Subsystem for Linux (WSL)
 ------------------------------------------------------
 It is possible to install Essentia easily in the *Windows Subsystem for Linux* on Windows 10. This environment allows to run the same command-line utilities that could be run within your favorite `distribution <https://aka.ms/wslstore>`_. Note that WSL is still in its infancy and the methods of interoperability between Windows applications and WSL are likely to change in the future.

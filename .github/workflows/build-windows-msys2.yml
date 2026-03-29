@@ -1,0 +1,41 @@
+name: build-windows-msys2
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+
+jobs:
+  mingw-msys2-build:
+    name: MSYS2 MinGW-w64 build
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup MSYS2
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            base-devel
+            mingw-w64-x86_64-toolchain
+            mingw-w64-x86_64-python
+            mingw-w64-x86_64-pkgconf
+            mingw-w64-x86_64-fftw
+            mingw-w64-x86_64-taglib
+            mingw-w64-x86_64-libsndfile
+            mingw-w64-x86_64-yaml-cpp
+
+      - name: Configure (MinGW)
+        shell: msys2 {0}
+        run: |
+          python waf configure --with-static-examples
+
+      - name: Build (MinGW)
+        shell: msys2 {0}
+        run: |
+          python waf -v
