@@ -41,7 +41,7 @@ jobs:
           cache-dependency-path: .github/workflows/build-vcpkg.yml
 
       - name: Install cibuildwheel
-        run: python -m pip install cibuildwheel==3.4.0
+        run: python -m pip install --upgrade cibuildwheel
 
       - name: Cache vcpkg source and installed packages
         uses: actions/cache@v5
@@ -106,6 +106,7 @@ jobs:
         if: ${{ startsWith(matrix.os, 'windows') }}
         env:
           CIBW_BUILD: "cp312-win_amd64 cp313-win_amd64 cp314-win_amd64"
+          CIBW_BUILD_FRONTEND: build[uv]
           ESSENTIA_WHEEL_SKIP_3RDPARTY: "1"
           PKG_CONFIG: ${{ env.ESSENTIA_WINDOWS_PKG_CONFIG_EXE }}
           PKG_CONFIG_PATH: ${{ env.ESSENTIA_WINDOWS_PKG_CONFIG_PATH }}
@@ -119,49 +120,23 @@ jobs:
       - name: Build wheels (Linux/macOS with vcpkg)
         if: ${{ !startsWith(matrix.os, 'windows') }}
         env:
-          CIBW_BEFORE_ALL_LINUX: >-
-            bash -lc "set -euxo pipefail;
-            VCPKG_ROOT=/project/.cibw-cache/vcpkg;
-            \"$VCPKG_ROOT/bootstrap-vcpkg.sh\";
-            \"$VCPKG_ROOT/vcpkg\" install --triplet x64-linux --x-manifest-root=/project --clean-after-build;
-            mkdir -p /project/.pkgconfig;
-            cat > /project/.pkgconfig/eigen3.pc <<'PC';
-            Name: eigen3
-            Description: Eigen3
-            Version: 3.4.0
-            Cflags: -I/project/.cibw-cache/vcpkg/installed/x64-linux/include/eigen3
-            PC
-            PYBIN=$(ls -1 /opt/python/cp3*-cp3*/bin/python | head -n 1);
-            \"$PYBIN\" waf configure --with-python --pkg-config-path=\"/project/.pkgconfig:/project/.cibw-cache/vcpkg/installed/x64-linux/lib/pkgconfig:/project/.cibw-cache/vcpkg/installed/x64-linux/share/pkgconfig\";
-            \"$PYBIN\" waf;
-            \"$PYBIN\" waf install"
+          CIBW_BUILD_FRONTEND: build[uv]
+          VCPKG_TRIPLET: ${{ matrix.vcpkg_triplet }}
+          CIBW_BEFORE_ALL_LINUX: bash /project/.github/scripts/cibw_before_all_linux_vcpkg.sh
           CIBW_ENVIRONMENT_LINUX: >-
             ESSENTIA_WHEEL_SKIP_3RDPARTY=1
             ESSENTIA_WHEEL_ONLY_PYTHON=0
             PKG_CONFIG_PATH=/project/.pkgconfig:/project/.cibw-cache/vcpkg/installed/x64-linux/lib/pkgconfig:/project/.cibw-cache/vcpkg/installed/x64-linux/share/pkgconfig
             CFLAGS='-I/project/.cibw-cache/vcpkg/installed/x64-linux/include/eigen3'
             CXXFLAGS='-I/project/.cibw-cache/vcpkg/installed/x64-linux/include/eigen3'
-          CIBW_BEFORE_ALL_MACOS: >-
-            bash -lc "set -euxo pipefail;
-            VCPKG_ROOT=$PWD/.cibw-cache/vcpkg;
-            \"$VCPKG_ROOT/bootstrap-vcpkg.sh\";
-            \"$VCPKG_ROOT/vcpkg\" install --triplet ${{ matrix.vcpkg_triplet }} --x-manifest-root=$PWD --clean-after-build;
-            mkdir -p .pkgconfig;
-            cat > .pkgconfig/eigen3.pc <<'PC';
-            Name: eigen3
-            Description: Eigen3
-            Version: 3.4.0
-            Cflags: -I$PWD/.cibw-cache/vcpkg/installed/${{ matrix.vcpkg_triplet }}/include/eigen3
-            PC
-            python waf configure --with-python --pkg-config-path=\"$PWD/.pkgconfig:$PWD/.cibw-cache/vcpkg/installed/${{ matrix.vcpkg_triplet }}/lib/pkgconfig:$PWD/.cibw-cache/vcpkg/installed/${{ matrix.vcpkg_triplet }}/share/pkgconfig\";
-            python waf;
-            python waf install"
+          CIBW_BEFORE_ALL_MACOS: bash .github/scripts/cibw_before_all_macos_vcpkg.sh
           CIBW_ENVIRONMENT_MACOS: >-
             ESSENTIA_WHEEL_SKIP_3RDPARTY=1
             ESSENTIA_WHEEL_ONLY_PYTHON=0
-            PKG_CONFIG_PATH={project}/.pkgconfig:{project}/.cibw-cache/vcpkg/installed/${{ matrix.vcpkg_triplet }}/lib/pkgconfig:{project}/.cibw-cache/vcpkg/installed/${{ matrix.vcpkg_triplet }}/share/pkgconfig
-            CFLAGS='-I{project}/.cibw-cache/vcpkg/installed/${{ matrix.vcpkg_triplet }}/include/eigen3'
-            CXXFLAGS='-I{project}/.cibw-cache/vcpkg/installed/${{ matrix.vcpkg_triplet }}/include/eigen3'
+            VCPKG_TRIPLET=${{ matrix.vcpkg_triplet }}
+            PKG_CONFIG_PATH=$PWD/.pkgconfig:$PWD/.cibw-cache/vcpkg/installed/${{ matrix.vcpkg_triplet }}/lib/pkgconfig:$PWD/.cibw-cache/vcpkg/installed/${{ matrix.vcpkg_triplet }}/share/pkgconfig
+            CFLAGS='-I$PWD/.cibw-cache/vcpkg/installed/${{ matrix.vcpkg_triplet }}/include/eigen3'
+            CXXFLAGS='-I$PWD/.cibw-cache/vcpkg/installed/${{ matrix.vcpkg_triplet }}/include/eigen3'
         run: python -m cibuildwheel . --output-dir wheelhouse --config-file cibuildwheel.toml
 
       - uses: actions/upload-artifact@v6
