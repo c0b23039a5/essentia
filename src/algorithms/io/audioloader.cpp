@@ -26,6 +26,48 @@ using namespace std;
 namespace essentia {
 namespace streaming {
 
+namespace {
+
+int guessChannelCount(const AVCodecContext* audioCtx,
+                      const AVCodecParameters* codecParams,
+                      const AVFrame* frame) {
+    if (audioCtx && audioCtx->ch_layout.nb_channels > 0) {
+        return audioCtx->ch_layout.nb_channels;
+    }
+    if (codecParams && codecParams->ch_layout.nb_channels > 0) {
+        return codecParams->ch_layout.nb_channels;
+    }
+    if (frame && frame->ch_layout.nb_channels > 0) {
+        return frame->ch_layout.nb_channels;
+    }
+    return 0;
+}
+
+int guessSampleRate(const AVCodecContext* audioCtx,
+                    const AVCodecParameters* codecParams,
+                    const AVFrame* frame,
+                    const AVStream* stream) {
+    if (audioCtx && audioCtx->sample_rate > 0) {
+        return audioCtx->sample_rate;
+    }
+    if (codecParams && codecParams->sample_rate > 0) {
+        return codecParams->sample_rate;
+    }
+    if (frame && frame->sample_rate > 0) {
+        return frame->sample_rate;
+    }
+    if (stream && stream->time_base.num > 0 && stream->time_base.den > 0 &&
+        stream->time_base.den % stream->time_base.num == 0) {
+        const int streamRate = stream->time_base.den / stream->time_base.num;
+        if (streamRate >= 1000 && streamRate <= 768000) {
+            return streamRate;
+        }
+    }
+    return 0;
+}
+
+}
+
 const char* AudioLoader::name = essentia::standard::AudioLoader::name;
 const char* AudioLoader::category = essentia::standard::AudioLoader::category;
 const char* AudioLoader::description = essentia::standard::AudioLoader::description;
@@ -121,28 +163,41 @@ void AudioLoader::openAudioFile(const string& filename) {
     }
   
     // Configure format conversion (no samplerate conversion yet)
-    // Use modern channel layout API
+    const int openChannels = guessChannelCount(_audioCtx, codecParams, 0);
     AVChannelLayout layout;
+    memset(&layout, 0, sizeof(layout));
+    bool hasLayout = false;
     if (_audioCtx->ch_layout.nb_channels > 0) {
-        layout = _audioCtx->ch_layout;
-    } else {
-        // Fallback for older codecs that might not have channel layout set
-        av_channel_layout_default(&layout, _audioCtx->ch_layout.nb_channels);
+        if (av_channel_layout_copy(&layout, &_audioCtx->ch_layout) == 0) {
+            hasLayout = true;
+        }
+    } else if (openChannels > 0) {
+        av_channel_layout_default(&layout, openChannels);
+        hasLayout = true;
     }
 
     E_DEBUG(EAlgorithm, "AudioLoader: using sample format conversion from libswresample");
     _convertCtxAv = swr_alloc();
         
     // Use modern channel layout API for swresample configuration
-    av_opt_set_chlayout(_convertCtxAv, "in_chlayout", &layout, 0);
-    av_opt_set_chlayout(_convertCtxAv, "out_chlayout", &layout, 0);
-    av_opt_set_int(_convertCtxAv, "in_sample_rate", _audioCtx->sample_rate, 0);
-    av_opt_set_int(_convertCtxAv, "out_sample_rate", _audioCtx->sample_rate, 0);
+    if (hasLayout) {
+        av_opt_set_chlayout(_convertCtxAv, "in_chlayout", &layout, 0);
+        av_opt_set_chlayout(_convertCtxAv, "out_chlayout", &layout, 0);
+    } else if (openChannels > 0) {
+        av_opt_set_int(_convertCtxAv, "in_channel_count", openChannels, 0);
+        av_opt_set_int(_convertCtxAv, "out_channel_count", openChannels, 0);
+    }
+    const int openSampleRate = guessSampleRate(_audioCtx, codecParams, 0, _demuxCtx->streams[_streamIdx]);
+    av_opt_set_int(_convertCtxAv, "in_sample_rate", openSampleRate, 0);
+    av_opt_set_int(_convertCtxAv, "out_sample_rate", openSampleRate, 0);
     av_opt_set_int(_convertCtxAv, "in_sample_fmt", _audioCtx->sample_fmt, 0);
     av_opt_set_int(_convertCtxAv, "out_sample_fmt", AV_SAMPLE_FMT_FLT, 0);
 
     if (swr_init(_convertCtxAv) < 0) {
         throw EssentiaException("AudioLoader: Could not initialize swresample context");
+    }
+    if (hasLayout) {
+        av_channel_layout_uninit(&layout);
     }
 
     av_init_packet(&_packet);
@@ -217,6 +272,31 @@ AlgorithmStatus AudioLoader::process() {
         throw EssentiaException("AudioLoader: Trying to call process() on an AudioLoader algo which hasn't been correctly configured.");
     }
 
+    AVCodecParameters* codecParams = 0;
+    AVStream* stream = 0;
+    if (_demuxCtx && _streamIdx >= 0 && _streamIdx < (int)_demuxCtx->nb_streams && _demuxCtx->streams[_streamIdx]) {
+        stream = _demuxCtx->streams[_streamIdx];
+        codecParams = stream->codecpar;
+    }
+
+    int guessedChannels = guessChannelCount(_audioCtx, codecParams, 0);
+    if (guessedChannels > 0) {
+        _metadataChannels = guessedChannels;
+        _nChannels = guessedChannels;
+    }
+    int guessedSampleRate = guessSampleRate(_audioCtx, codecParams, 0, stream);
+    if (guessedSampleRate > 0) {
+        _metadataSampleRate = guessedSampleRate;
+    }
+    if ((_metadataBitRate <= 0) && _audioCtx && _audioCtx->bit_rate > 0) {
+        _metadataBitRate = _audioCtx->bit_rate;
+    }
+    if ((_metadataBitRate <= 0) && codecParams && codecParams->bit_rate > 0) {
+        _metadataBitRate = codecParams->bit_rate;
+    }
+    if ((_metadataBitRate <= 0) && _demuxCtx && _demuxCtx->bit_rate > 0) {
+        _metadataBitRate = _demuxCtx->bit_rate;
+    }
     if (!_metadataSent && _metadataChannels > 0 && _metadataSampleRate > 0) {
         pushChannelsSampleRateInfo(_metadataChannels, _metadataSampleRate);
         pushCodecInfo(_metadataCodec, _metadataBitRate);
@@ -238,6 +318,24 @@ AlgorithmStatus AudioLoader::process() {
             }
             shouldStop(true);
             flushPacket();
+            guessedChannels = guessChannelCount(_audioCtx, codecParams, _decodedFrame);
+            if (guessedChannels > 0) {
+                _metadataChannels = guessedChannels;
+                _nChannels = guessedChannels;
+            }
+            guessedSampleRate = guessSampleRate(_audioCtx, codecParams, _decodedFrame, stream);
+            if (guessedSampleRate > 0) {
+                _metadataSampleRate = guessedSampleRate;
+            }
+            if ((_metadataBitRate <= 0) && _audioCtx && _audioCtx->bit_rate > 0) {
+                _metadataBitRate = _audioCtx->bit_rate;
+            }
+            if ((_metadataBitRate <= 0) && codecParams && codecParams->bit_rate > 0) {
+                _metadataBitRate = codecParams->bit_rate;
+            }
+            if ((_metadataBitRate <= 0) && _demuxCtx && _demuxCtx->bit_rate > 0) {
+                _metadataBitRate = _demuxCtx->bit_rate;
+            }
             if (!_metadataSent && _metadataChannels > 0 && _metadataSampleRate > 0) {
                 pushChannelsSampleRateInfo(_metadataChannels, _metadataSampleRate);
                 pushCodecInfo(_metadataCodec, _metadataBitRate);
@@ -265,20 +363,27 @@ AlgorithmStatus AudioLoader::process() {
     // *not* mutate _packet.data/_packet.size. It will set _dataSize to number of bytes written.
     int consumed = decodePacket();
 
-    if (!_metadataSent && _dataSize > 0) {
-        int nChannels = _metadataChannels;
-        if (nChannels <= 0 && _decodedFrame) {
-            nChannels = _decodedFrame->ch_layout.nb_channels;
+    if (_dataSize > 0) {
+        guessedChannels = guessChannelCount(_audioCtx, codecParams, _decodedFrame);
+        if (guessedChannels > 0) {
+            _metadataChannels = guessedChannels;
+            _nChannels = guessedChannels;
+        }
+        guessedSampleRate = guessSampleRate(_audioCtx, codecParams, _decodedFrame, stream);
+        if (guessedSampleRate > 0) {
+            _metadataSampleRate = guessedSampleRate;
+        }
+        if ((_metadataBitRate <= 0) && _audioCtx && _audioCtx->bit_rate > 0) {
+            _metadataBitRate = _audioCtx->bit_rate;
+        }
+        if ((_metadataBitRate <= 0) && codecParams && codecParams->bit_rate > 0) {
+            _metadataBitRate = codecParams->bit_rate;
+        }
+        if ((_metadataBitRate <= 0) && _demuxCtx && _demuxCtx->bit_rate > 0) {
+            _metadataBitRate = _demuxCtx->bit_rate;
         }
 
-        Real sampleRate = _metadataSampleRate;
-        if (sampleRate <= 0 && _decodedFrame) {
-            sampleRate = _decodedFrame->sample_rate;
-        }
-
-        if (nChannels > 0 && sampleRate > 0) {
-            _metadataChannels = nChannels;
-            _metadataSampleRate = sampleRate;
+        if (!_metadataSent && _metadataChannels > 0 && _metadataSampleRate > 0) {
             pushChannelsSampleRateInfo(_metadataChannels, _metadataSampleRate);
             pushCodecInfo(_metadataCodec, _metadataBitRate);
             _metadataSent = true;
@@ -399,6 +504,31 @@ void AudioLoader::flushPacket() {
             break;
         }
 
+        AVCodecParameters* codecParams = 0;
+        AVStream* stream = 0;
+        if (_demuxCtx && _streamIdx >= 0 && _streamIdx < (int)_demuxCtx->nb_streams && _demuxCtx->streams[_streamIdx]) {
+            stream = _demuxCtx->streams[_streamIdx];
+            codecParams = stream->codecpar;
+        }
+        int guessedChannels = guessChannelCount(_audioCtx, codecParams, _decodedFrame);
+        if (guessedChannels > 0) {
+            _metadataChannels = guessedChannels;
+            _nChannels = guessedChannels;
+        }
+        int guessedSampleRate = guessSampleRate(_audioCtx, codecParams, _decodedFrame, stream);
+        if (guessedSampleRate > 0) {
+            _metadataSampleRate = guessedSampleRate;
+        }
+        if ((_metadataBitRate <= 0) && _audioCtx && _audioCtx->bit_rate > 0) {
+            _metadataBitRate = _audioCtx->bit_rate;
+        }
+        if ((_metadataBitRate <= 0) && codecParams && codecParams->bit_rate > 0) {
+            _metadataBitRate = codecParams->bit_rate;
+        }
+        if ((_metadataBitRate <= 0) && _demuxCtx && _demuxCtx->bit_rate > 0) {
+            _metadataBitRate = _demuxCtx->bit_rate;
+        }
+
         // got a frame -> convert to floats as in decodePacket()
         int inputSamples = _decodedFrame->nb_samples;
         int outPlaneSize = av_samples_get_buffer_size(NULL, _nChannels, inputSamples, AV_SAMPLE_FMT_FLT, 1);
@@ -462,6 +592,34 @@ int AudioLoader::decodePacket() {
         av_strerror(receive_result, errstring, sizeof(errstring));
         E_WARNING("AudioLoader: avcodec_receive_frame error: " << errstring);
         return 0;
+    }
+
+    AVCodecParameters* codecParams = 0;
+    AVStream* stream = 0;
+    if (_demuxCtx && _streamIdx >= 0 && _streamIdx < (int)_demuxCtx->nb_streams && _demuxCtx->streams[_streamIdx]) {
+        stream = _demuxCtx->streams[_streamIdx];
+        codecParams = stream->codecpar;
+    }
+    int guessedChannels = guessChannelCount(_audioCtx, codecParams, _decodedFrame);
+    if (guessedChannels > 0) {
+        _nChannels = guessedChannels;
+        _metadataChannels = guessedChannels;
+    } else {
+        E_WARNING("AudioLoader: could not resolve channel count from FFmpeg structures");
+        return 0;
+    }
+    int guessedSampleRate = guessSampleRate(_audioCtx, codecParams, _decodedFrame, stream);
+    if (guessedSampleRate > 0) {
+        _metadataSampleRate = guessedSampleRate;
+    }
+    if ((_metadataBitRate <= 0) && _audioCtx && _audioCtx->bit_rate > 0) {
+        _metadataBitRate = _audioCtx->bit_rate;
+    }
+    if ((_metadataBitRate <= 0) && codecParams && codecParams->bit_rate > 0) {
+        _metadataBitRate = codecParams->bit_rate;
+    }
+    if ((_metadataBitRate <= 0) && _demuxCtx && _demuxCtx->bit_rate > 0) {
+        _metadataBitRate = _demuxCtx->bit_rate;
     }
 
     // We got a frame -> convert it to float interleaved
@@ -564,15 +722,13 @@ void AudioLoader::reset() {
         codecParams = _demuxCtx->streams[_streamIdx]->codecpar;
     }
 
-    _metadataChannels = _audioCtx ? _audioCtx->ch_layout.nb_channels : 0;
-    if (_metadataChannels <= 0 && codecParams) {
-        _metadataChannels = codecParams->ch_layout.nb_channels;
+    AVStream* stream = 0;
+    if (_demuxCtx && _streamIdx >= 0 && _streamIdx < (int)_demuxCtx->nb_streams) {
+        stream = _demuxCtx->streams[_streamIdx];
     }
 
-    _metadataSampleRate = _audioCtx ? _audioCtx->sample_rate : 0;
-    if (_metadataSampleRate <= 0 && codecParams) {
-        _metadataSampleRate = codecParams->sample_rate;
-    }
+    _metadataChannels = guessChannelCount(_audioCtx, codecParams, _decodedFrame);
+    _metadataSampleRate = guessSampleRate(_audioCtx, codecParams, _decodedFrame, stream);
 
     _metadataBitRate = _audioCtx ? _audioCtx->bit_rate : 0;
     if (_metadataBitRate <= 0 && codecParams) {
