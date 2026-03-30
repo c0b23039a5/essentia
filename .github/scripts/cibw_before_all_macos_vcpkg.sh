@@ -30,7 +30,9 @@ Cflags: -I$VCPKG_ROOT/installed/$TRIPLET/include
 PC
 
 export CXXFLAGS="${CXXFLAGS:-} -std=c++14"
+PREFIX_DIR="$ROOT/.cibw-prefix"
+mkdir -p "$PREFIX_DIR"
 
-python waf configure --pkg-config-path="$ROOT/.pkgconfig:$VCPKG_ROOT/installed/$TRIPLET/lib/pkgconfig:$VCPKG_ROOT/installed/$TRIPLET/share/pkgconfig"
+python waf configure --prefix="$PREFIX_DIR" --pkg-config-path="$ROOT/.pkgconfig:$VCPKG_ROOT/installed/$TRIPLET/lib/pkgconfig:$VCPKG_ROOT/installed/$TRIPLET/share/pkgconfig"
 python waf
 python waf install

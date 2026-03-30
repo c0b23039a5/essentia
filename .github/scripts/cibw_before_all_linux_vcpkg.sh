@@ -57,8 +57,10 @@ Cflags: -I$VCPKG_ROOT/installed/$TRIPLET/include
 PC
 
 export CXXFLAGS="${CXXFLAGS:-} -std=c++14"
+PREFIX_DIR="$ROOT/.cibw-prefix"
+mkdir -p "$PREFIX_DIR"
 
 PYBIN=$(ls -1 /opt/python/cp3*-cp3*/bin/python | head -n 1)
-"$PYBIN" waf configure --pkg-config-path="$ROOT/.pkgconfig:$VCPKG_ROOT/installed/$TRIPLET/lib/pkgconfig:$VCPKG_ROOT/installed/$TRIPLET/share/pkgconfig"
+"$PYBIN" waf configure --prefix="$PREFIX_DIR" --pkg-config-path="$ROOT/.pkgconfig:$VCPKG_ROOT/installed/$TRIPLET/lib/pkgconfig:$VCPKG_ROOT/installed/$TRIPLET/share/pkgconfig"
 "$PYBIN" waf
 "$PYBIN" waf install
