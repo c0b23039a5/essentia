@@ -37,14 +37,14 @@ int guessChannelCount(const AVCodecContext* audioCtx,
                       const AVFrame* decodedFrame) {
     int nChannels = 0;
 
-    if (audioCtx) {
+    if (nChannels <= 0 && decodedFrame) {
+        nChannels = channelCountFromLayout(decodedFrame->ch_layout);
+    }
+    if (nChannels <= 0 && audioCtx) {
         nChannels = channelCountFromLayout(audioCtx->ch_layout);
     }
     if (nChannels <= 0 && codecParams) {
         nChannels = channelCountFromLayout(codecParams->ch_layout);
-    }
-    if (nChannels <= 0 && decodedFrame) {
-        nChannels = channelCountFromLayout(decodedFrame->ch_layout);
     }
     return nChannels;
 }
@@ -55,14 +55,14 @@ Real guessSampleRate(const AVCodecContext* audioCtx,
                     const AVStream* stream) {
     int sampleRate = 0;
 
-    if (audioCtx) {
+    if (sampleRate <= 0 && decodedFrame) {
+        sampleRate = decodedFrame->sample_rate;
+    }
+    if (sampleRate <= 0 && audioCtx) {
         sampleRate = audioCtx->sample_rate;
     }
     if (sampleRate <= 0 && codecParams) {
         sampleRate = codecParams->sample_rate;
-    }
-    if (sampleRate <= 0 && decodedFrame) {
-        sampleRate = decodedFrame->sample_rate;
     }
     if (sampleRate <= 0 && stream && stream->time_base.num == 1 && stream->time_base.den > 0) {
         // Common FFmpeg convention for audio streams is time_base = 1/sample_rate.
@@ -269,12 +269,7 @@ AlgorithmStatus AudioLoader::process() {
         throw EssentiaException("AudioLoader: Trying to call process() on an AudioLoader algo which hasn't been correctly configured.");
     }
 
-    if (!_metadataSent && _metadataChannels > 0 && _metadataSampleRate > 0) {
-        pushChannelsSampleRateInfo(_metadataChannels, _metadataSampleRate);
-        pushCodecInfo(_metadataCodec, _metadataBitRate);
-        _metadataSent = true;
-        _codecInfoSent = true;
-    } else if (!_metadataSent && !_codecInfoSent && !_metadataCodec.empty()) {
+    if (!_codecInfoSent && !_metadataCodec.empty()) {
         // Emit codec/bit-rate metadata even if sample-rate/channels are still unknown.
         pushCodecInfo(_metadataCodec, _metadataBitRate);
         _codecInfoSent = true;
@@ -312,9 +307,11 @@ AlgorithmStatus AudioLoader::process() {
             if (!_metadataSent && _metadataChannels > 0 && _metadataSampleRate > 0) {
                 _nChannels = _metadataChannels;
                 pushChannelsSampleRateInfo(_metadataChannels, _metadataSampleRate);
-                pushCodecInfo(_metadataCodec, _metadataBitRate);
+                if (!_codecInfoSent) {
+                    pushCodecInfo(_metadataCodec, _metadataBitRate);
+                    _codecInfoSent = true;
+                }
                 _metadataSent = true;
-                _codecInfoSent = true;
             }
             closeAudioFile();
             if (_computeMD5) {
@@ -357,9 +354,7 @@ AlgorithmStatus AudioLoader::process() {
             _metadataSampleRate = sampleRate;
             _nChannels = _metadataChannels;
             pushChannelsSampleRateInfo(_metadataChannels, _metadataSampleRate);
-            pushCodecInfo(_metadataCodec, _metadataBitRate);
             _metadataSent = true;
-            _codecInfoSent = true;
         }
     }
 
@@ -754,53 +749,6 @@ void AudioLoader::compute() {
     md5 = _pool.value<std::string>("internal.md5");
     bit_rate = (int) _pool.value<Real>("internal.bit_rate");
     codec = _pool.value<std::string>("internal.codec");
-
-    // Fallback: some FFmpeg builds can decode audio but still miss metadata in AudioLoader.
-    // MetadataReader is more robust for file-level sample-rate/channels extraction.
-    if (sampleRate <= 0 || numberChannels <= 0 || bit_rate <= 0) {
-        Algorithm* metadataReader = AlgorithmFactory::create("MetadataReader");
-        metadataReader->configure("filename", parameter("filename").toString(),
-                                  "failOnError", false);
-
-        int metadataDuration = 0;
-        int metadataBitrateKbps = 0;
-        int metadataSampleRate = 0;
-        int metadataChannels = 0;
-        string metadataTitle;
-        string metadataArtist;
-        string metadataAlbum;
-        string metadataComment;
-        string metadataGenre;
-        string metadataTrack;
-        string metadataDate;
-        Pool metadataTagPool;
-        metadataReader->output("title").set(metadataTitle);
-        metadataReader->output("artist").set(metadataArtist);
-        metadataReader->output("album").set(metadataAlbum);
-        metadataReader->output("comment").set(metadataComment);
-        metadataReader->output("genre").set(metadataGenre);
-        metadataReader->output("tracknumber").set(metadataTrack);
-        metadataReader->output("date").set(metadataDate);
-        metadataReader->output("tagPool").set(metadataTagPool);
-        metadataReader->output("duration").set(metadataDuration);
-        metadataReader->output("bitrate").set(metadataBitrateKbps);
-        metadataReader->output("sampleRate").set(metadataSampleRate);
-        metadataReader->output("channels").set(metadataChannels);
-        metadataReader->compute();
-
-        if (sampleRate <= 0 && metadataSampleRate > 0) {
-            sampleRate = metadataSampleRate;
-        }
-        if (numberChannels <= 0 && metadataChannels > 0) {
-            numberChannels = metadataChannels;
-        }
-        // MetadataReader reports kb/s. AudioLoader output bit_rate is in b/s.
-        if (bit_rate <= 0 && metadataBitrateKbps > 0) {
-            bit_rate = metadataBitrateKbps * 1000;
-        }
-
-        delete metadataReader;
-    }
 
     // reset, so it is ready to load audio again
     reset();
