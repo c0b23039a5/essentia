@@ -38,7 +38,7 @@ if [ ! -d "$VCPKG_ROOT/.git" ]; then
 fi
 
 "$VCPKG_ROOT/bootstrap-vcpkg.sh"
-"$VCPKG_ROOT/vcpkg" install --triplet "$TRIPLET" --x-manifest-root="$ROOT" --clean-after-build
+"$VCPKG_ROOT/vcpkg" install --triplet "$TRIPLET" --x-manifest-root="$ROOT" --x-install-root="$VCPKG_ROOT/installed" --clean-after-build
 
 mkdir -p "$ROOT/.pkgconfig"
 cat > "$ROOT/.pkgconfig/eigen3.pc" <<PC
@@ -57,6 +57,6 @@ Cflags: -I$VCPKG_ROOT/installed/$TRIPLET/include
 PC
 
 PYBIN=$(ls -1 /opt/python/cp3*-cp3*/bin/python | head -n 1)
-"$PYBIN" waf configure --with-python --pkg-config-path="$ROOT/.pkgconfig:$VCPKG_ROOT/installed/$TRIPLET/lib/pkgconfig:$VCPKG_ROOT/installed/$TRIPLET/share/pkgconfig"
+"$PYBIN" waf configure --pkg-config-path="$ROOT/.pkgconfig:$VCPKG_ROOT/installed/$TRIPLET/lib/pkgconfig:$VCPKG_ROOT/installed/$TRIPLET/share/pkgconfig"
 "$PYBIN" waf
 "$PYBIN" waf install

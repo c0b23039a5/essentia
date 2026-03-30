@@ -11,7 +11,7 @@ if [ ! -d "$VCPKG_ROOT/.git" ]; then
 fi
 
 "$VCPKG_ROOT/bootstrap-vcpkg.sh"
-"$VCPKG_ROOT/vcpkg" install --triplet "$TRIPLET" --x-manifest-root="$ROOT" --clean-after-build
+"$VCPKG_ROOT/vcpkg" install --triplet "$TRIPLET" --x-manifest-root="$ROOT" --x-install-root="$VCPKG_ROOT/installed" --clean-after-build
 
 mkdir -p "$ROOT/.pkgconfig"
 cat > "$ROOT/.pkgconfig/eigen3.pc" <<PC
@@ -29,6 +29,6 @@ Libs: -L$VCPKG_ROOT/installed/$TRIPLET/lib -lyaml
 Cflags: -I$VCPKG_ROOT/installed/$TRIPLET/include
 PC
 
-python waf configure --with-python --pkg-config-path="$ROOT/.pkgconfig:$VCPKG_ROOT/installed/$TRIPLET/lib/pkgconfig:$VCPKG_ROOT/installed/$TRIPLET/share/pkgconfig"
+python waf configure --pkg-config-path="$ROOT/.pkgconfig:$VCPKG_ROOT/installed/$TRIPLET/lib/pkgconfig:$VCPKG_ROOT/installed/$TRIPLET/share/pkgconfig"
 python waf
 python waf install

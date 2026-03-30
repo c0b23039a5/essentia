@@ -67,7 +67,7 @@ jobs:
           $repo = (Get-Location).Path
           $vcpkgRoot = Join-Path $repo '.cibw-cache/vcpkg'
           & (Join-Path $vcpkgRoot 'bootstrap-vcpkg.bat')
-          & (Join-Path $vcpkgRoot 'vcpkg.exe') install --triplet "${{ matrix.vcpkg_triplet }}" --x-manifest-root="$repo" --clean-after-build
+          & (Join-Path $vcpkgRoot 'vcpkg.exe') install --triplet "${{ matrix.vcpkg_triplet }}" --x-manifest-root="$repo" --x-install-root="$vcpkgRoot/installed" --clean-after-build
 
           $vcpkgInstalled = Join-Path $vcpkgRoot 'installed/${{ matrix.vcpkg_triplet }}'
           $eigenInclude = Join-Path $vcpkgInstalled 'include/eigen3'
