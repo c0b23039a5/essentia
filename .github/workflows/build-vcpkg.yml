@@ -21,7 +21,7 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            vcpkg_triplet: x64-linux
+            vcpkg_triplet: x64-linux-dynamic
           - os: macos-latest
             vcpkg_triplet: arm64-osx
           - os: windows-latest
@@ -129,9 +129,9 @@ jobs:
           CIBW_ENVIRONMENT_LINUX: >-
             ESSENTIA_WHEEL_SKIP_3RDPARTY=1
             ESSENTIA_WHEEL_ONLY_PYTHON=0
-            PKG_CONFIG_PATH=/project/.pkgconfig:/project/.cibw-cache/vcpkg/installed/x64-linux/lib/pkgconfig:/project/.cibw-cache/vcpkg/installed/x64-linux/share/pkgconfig
-            CFLAGS='-I/project/.cibw-cache/vcpkg/installed/x64-linux/include/eigen3'
-            CXXFLAGS='-I/project/.cibw-cache/vcpkg/installed/x64-linux/include/eigen3 -std=c++14'
+            VCPKG_TRIPLET=${{ matrix.vcpkg_triplet }} PKG_CONFIG_PATH=/project/.pkgconfig:/project/.cibw-cache/vcpkg/installed/$VCPKG_TRIPLET/lib/pkgconfig:/project/.cibw-cache/vcpkg/installed/$VCPKG_TRIPLET/share/pkgconfig
+            CFLAGS='-I/project/.cibw-cache/vcpkg/installed/$VCPKG_TRIPLET/include/eigen3'
+            CXXFLAGS='-I/project/.cibw-cache/vcpkg/installed/$VCPKG_TRIPLET/include/eigen3 -std=c++14'
           CIBW_BEFORE_ALL_MACOS: bash .github/scripts/cibw_before_all_macos_vcpkg.sh
           CIBW_ENVIRONMENT_MACOS: >-
             ESSENTIA_WHEEL_SKIP_3RDPARTY=1

@@ -3,7 +3,7 @@ set -euxo pipefail
 
 ROOT="/project"
 VCPKG_ROOT="$ROOT/.cibw-cache/vcpkg"
-TRIPLET="x64-linux"
+TRIPLET="${VCPKG_TRIPLET:-x64-linux-dynamic}"
 
 ensure_toolchain_prereqs() {
   if command -v zip >/dev/null 2>&1 && command -v unzip >/dev/null 2>&1 && command -v tar >/dev/null 2>&1 && command -v curl >/dev/null 2>&1 && command -v nasm >/dev/null 2>&1; then
