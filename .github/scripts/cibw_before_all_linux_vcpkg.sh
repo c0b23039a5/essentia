@@ -6,26 +6,26 @@ VCPKG_ROOT="$ROOT/.cibw-cache/vcpkg"
 TRIPLET="x64-linux"
 
 ensure_toolchain_prereqs() {
-  if command -v zip >/dev/null 2>&1 && command -v unzip >/dev/null 2>&1 && command -v tar >/dev/null 2>&1 && command -v curl >/dev/null 2>&1; then
+  if command -v zip >/dev/null 2>&1 && command -v unzip >/dev/null 2>&1 && command -v tar >/dev/null 2>&1 && command -v curl >/dev/null 2>&1 && command -v nasm >/dev/null 2>&1; then
     return
   fi
 
   if command -v apt-get >/dev/null 2>&1; then
     apt-get update
-    DEBIAN_FRONTEND=noninteractive apt-get install -y curl zip unzip tar
+    DEBIAN_FRONTEND=noninteractive apt-get install -y curl zip unzip tar nasm
   elif command -v dnf >/dev/null 2>&1; then
-    dnf install -y curl zip unzip tar
+    dnf install -y curl zip unzip tar nasm
   elif command -v microdnf >/dev/null 2>&1; then
-    microdnf install -y curl zip unzip tar
+    microdnf install -y curl zip unzip tar nasm
   elif command -v yum >/dev/null 2>&1; then
-    yum install -y curl zip unzip tar
+    yum install -y curl zip unzip tar nasm
   elif command -v zypper >/dev/null 2>&1; then
-    zypper --non-interactive install curl zip unzip tar
+    zypper --non-interactive install curl zip unzip tar nasm
   elif command -v apk >/dev/null 2>&1; then
-    apk add --no-cache curl zip unzip tar
+    apk add --no-cache curl zip unzip tar nasm
     export VCPKG_FORCE_SYSTEM_BINARIES=1
   else
-    echo "Unable to install vcpkg prerequisites automatically (need curl/zip/unzip/tar)." >&2
+    echo "Unable to install vcpkg prerequisites automatically (need curl/zip/unzip/tar/nasm)." >&2
     exit 1
   fi
 }
