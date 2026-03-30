@@ -128,7 +128,7 @@ jobs:
             ESSENTIA_WHEEL_ONLY_PYTHON=0
             PKG_CONFIG_PATH=/project/.pkgconfig:/project/.cibw-cache/vcpkg/installed/x64-linux/lib/pkgconfig:/project/.cibw-cache/vcpkg/installed/x64-linux/share/pkgconfig
             CFLAGS='-I/project/.cibw-cache/vcpkg/installed/x64-linux/include/eigen3'
-            CXXFLAGS='-I/project/.cibw-cache/vcpkg/installed/x64-linux/include/eigen3'
+            CXXFLAGS='-I/project/.cibw-cache/vcpkg/installed/x64-linux/include/eigen3 -std=c++14'
           CIBW_BEFORE_ALL_MACOS: bash .github/scripts/cibw_before_all_macos_vcpkg.sh
           CIBW_ENVIRONMENT_MACOS: >-
             ESSENTIA_WHEEL_SKIP_3RDPARTY=1
@@ -136,7 +136,7 @@ jobs:
             VCPKG_TRIPLET=${{ matrix.vcpkg_triplet }}
             PKG_CONFIG_PATH=$PWD/.pkgconfig:$PWD/.cibw-cache/vcpkg/installed/${{ matrix.vcpkg_triplet }}/lib/pkgconfig:$PWD/.cibw-cache/vcpkg/installed/${{ matrix.vcpkg_triplet }}/share/pkgconfig
             CFLAGS='-I$PWD/.cibw-cache/vcpkg/installed/${{ matrix.vcpkg_triplet }}/include/eigen3'
-            CXXFLAGS='-I$PWD/.cibw-cache/vcpkg/installed/${{ matrix.vcpkg_triplet }}/include/eigen3'
+            CXXFLAGS='-I$PWD/.cibw-cache/vcpkg/installed/${{ matrix.vcpkg_triplet }}/include/eigen3 -std=c++14'
         run: python -m cibuildwheel . --output-dir wheelhouse --config-file cibuildwheel.toml
 
       - uses: actions/upload-artifact@v6

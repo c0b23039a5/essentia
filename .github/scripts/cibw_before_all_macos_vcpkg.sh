@@ -29,6 +29,8 @@ Libs: -L$VCPKG_ROOT/installed/$TRIPLET/lib -lyaml
 Cflags: -I$VCPKG_ROOT/installed/$TRIPLET/include
 PC
 
+export CXXFLAGS="${CXXFLAGS:-} -std=c++14"
+
 python waf configure --pkg-config-path="$ROOT/.pkgconfig:$VCPKG_ROOT/installed/$TRIPLET/lib/pkgconfig:$VCPKG_ROOT/installed/$TRIPLET/share/pkgconfig"
 python waf
 python waf install

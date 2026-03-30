@@ -56,6 +56,8 @@ Libs: -L$VCPKG_ROOT/installed/$TRIPLET/lib -lyaml
 Cflags: -I$VCPKG_ROOT/installed/$TRIPLET/include
 PC
 
+export CXXFLAGS="${CXXFLAGS:-} -std=c++14"
+
 PYBIN=$(ls -1 /opt/python/cp3*-cp3*/bin/python | head -n 1)
 "$PYBIN" waf configure --pkg-config-path="$ROOT/.pkgconfig:$VCPKG_ROOT/installed/$TRIPLET/lib/pkgconfig:$VCPKG_ROOT/installed/$TRIPLET/share/pkgconfig"
 "$PYBIN" waf
