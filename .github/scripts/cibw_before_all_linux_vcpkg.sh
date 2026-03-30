@@ -48,6 +48,14 @@ Version: 3.4.0
 Cflags: -I$VCPKG_ROOT/installed/$TRIPLET/include/eigen3
 PC
 
+cat > "$ROOT/.pkgconfig/yaml-0.1.pc" <<PC
+Name: yaml-0.1
+Description: libyaml compatibility pkg-config file
+Version: 0.2.5
+Libs: -L$VCPKG_ROOT/installed/$TRIPLET/lib -lyaml
+Cflags: -I$VCPKG_ROOT/installed/$TRIPLET/include
+PC
+
 PYBIN=$(ls -1 /opt/python/cp3*-cp3*/bin/python | head -n 1)
 "$PYBIN" waf configure --with-python --pkg-config-path="$ROOT/.pkgconfig:$VCPKG_ROOT/installed/$TRIPLET/lib/pkgconfig:$VCPKG_ROOT/installed/$TRIPLET/share/pkgconfig"
 "$PYBIN" waf
