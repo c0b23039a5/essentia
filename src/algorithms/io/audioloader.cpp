@@ -269,12 +269,6 @@ AlgorithmStatus AudioLoader::process() {
         throw EssentiaException("AudioLoader: Trying to call process() on an AudioLoader algo which hasn't been correctly configured.");
     }
 
-    if (!_codecInfoSent && !_metadataCodec.empty()) {
-        // Emit codec/bit-rate metadata even if sample-rate/channels are still unknown.
-        pushCodecInfo(_metadataCodec, _metadataBitRate);
-        _codecInfoSent = true;
-    }
-
     // read frames until we get a good one
     do {
         int result = av_read_frame(_demuxCtx, &_packet);
@@ -307,11 +301,11 @@ AlgorithmStatus AudioLoader::process() {
             if (!_metadataSent && _metadataChannels > 0 && _metadataSampleRate > 0) {
                 _nChannels = _metadataChannels;
                 pushChannelsSampleRateInfo(_metadataChannels, _metadataSampleRate);
-                if (!_codecInfoSent) {
-                    pushCodecInfo(_metadataCodec, _metadataBitRate);
-                    _codecInfoSent = true;
-                }
                 _metadataSent = true;
+            }
+            if (!_codecInfoSent && !_metadataCodec.empty()) {
+                pushCodecInfo(_metadataCodec, _metadataBitRate);
+                _codecInfoSent = true;
             }
             closeAudioFile();
             if (_computeMD5) {
@@ -355,6 +349,10 @@ AlgorithmStatus AudioLoader::process() {
             _nChannels = _metadataChannels;
             pushChannelsSampleRateInfo(_metadataChannels, _metadataSampleRate);
             _metadataSent = true;
+            if (!_codecInfoSent && !_metadataCodec.empty()) {
+                pushCodecInfo(_metadataCodec, _metadataBitRate);
+                _codecInfoSent = true;
+            }
         }
     }
 
