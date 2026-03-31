@@ -182,18 +182,6 @@ class TestAudioLoader_Streaming(TestCase):
         self.assertEqualMatrix(audio2, audio1)
         self.assertEqualMatrix(audio2, audio3)
 
-    def testStandardMetadataIsPopulated(self):
-        from essentia.standard import AudioLoader as stdAudioLoader
-        filename = join(testdata.audio_dir, 'recorded', 'musicbox.wav')
-        audio, sampleRate, numberChannels, _, bitRate, codec = stdAudioLoader(filename=filename)()
-
-        self.assertTrue(len(audio) > 0)
-        self.assertTrue(sampleRate > 0)
-        self.assertTrue(numberChannels > 0)
-        self.assertTrue(len(codec) > 0)
-        # Some formats/containers may not report a reliable bit rate.
-        self.assertTrue(bitRate >= 0)
-
     def testBitrate(self):
         from math import fabs
         dir = join(testdata.audio_dir,'recorded')

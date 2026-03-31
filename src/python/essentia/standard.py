@@ -103,36 +103,6 @@ def _create_essentia_class(name, moduleName = __name__):
 
             results = self.__compute__(*convertedArgs)
 
-            # AudioLoader output ordering changed in some builds/toolchains.
-            # Keep Python API stable by returning values in documented order.
-            if name == 'AudioLoader':
-                outputNames = self.outputNames()
-                normalizedIndex = dict((str(outName).lower(), i)
-                                       for i, outName in enumerate(outputNames))
-                expectedOutputAliases = (
-                    ('audio',),
-                    ('samplerate', 'sample_rate'),
-                    ('numberchannels', 'number_channels', 'channels'),
-                    ('md5',),
-                    ('bit_rate', 'bitrate'),
-                    ('codec',),
-                )
-
-                resolvedOrder = []
-                for aliases in expectedOutputAliases:
-                    idx = None
-                    for alias in aliases:
-                        if alias in normalizedIndex:
-                            idx = normalizedIndex[alias]
-                            break
-                    if idx is None:
-                        resolvedOrder = []
-                        break
-                    resolvedOrder.append(idx)
-
-                if resolvedOrder:
-                    return tuple(results[i] for i in resolvedOrder)
-
             # we have to make an exceptional case for YamlInput, because we need
             # to wrap the Pool that it outputs w/ our python Pool from common.py
             if name in ('YamlInput', 'PoolAggregator', 'SvmClassifier', 'PCA', 'GaiaTransform', 'Extractor', 'TensorflowPredict'):

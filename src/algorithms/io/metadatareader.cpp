@@ -53,9 +53,9 @@ string fixInvalidUTF8(const string& str) {
     }
     else if (c < 160) { // control character
       if (c2 == 128) { // fix microsoft mess, add euro
-        fixed += static_cast<char>(0xE2);
-        fixed += static_cast<char>(0x82);
-        fixed += static_cast<char>(0xAC);
+        fixed += 226;
+        fixed += 130;
+        fixed += 172;
       }
       if (c2 == 133) { // fix IBM mess, add NEL = \n\r
         fixed += 10;
