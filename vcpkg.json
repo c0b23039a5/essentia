@@ -1,0 +1,15 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
+  "name": "essentia-ci-deps",
+  "version-string": "1.0.0",
+  "dependencies": [
+    "chromaprint",
+    "eigen3",
+    "ffmpeg",
+    "fftw3",
+    "libsamplerate",
+    "libyaml",
+    "pkgconf",
+    "taglib"
+  ]
+}

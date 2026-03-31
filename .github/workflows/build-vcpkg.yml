@@ -1,0 +1,185 @@
+name: Build wheels (vcpkg + cibuildwheel)
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build_wheels:
+    name: ${{ matrix.os }} / cibuildwheel
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            vcpkg_triplet: x64-linux-dynamic
+          - os: macos-latest
+            vcpkg_triplet: arm64-osx
+          - os: windows-latest
+            vcpkg_triplet: x64-windows
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: .github/workflows/build-vcpkg.yml
+
+      - name: Initialize MSVC environment
+        if: ${{ startsWith(matrix.os, 'windows') }}
+        shell: pwsh
+        run: |
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
+          if (-not (Test-Path $vswhere)) {
+            throw "vswhere.exe not found: $vswhere"
+          }
+
+          $vsInstall = & $vswhere -latest -products * -property installationPath
+          if (-not $vsInstall) {
+            throw "Visual Studio installation path not found via vswhere."
+          }
+
+          $vsDevCmd = Join-Path $vsInstall 'Common7\Tools\VsDevCmd.bat'
+          if (-not (Test-Path $vsDevCmd)) {
+            throw "VsDevCmd.bat not found: $vsDevCmd"
+          }
+
+          $envDump = cmd /c "`"$vsDevCmd`" -arch=x64 -host_arch=x64 >nul && set"
+          foreach ($line in $envDump) {
+            if ($line -match '^(INCLUDE|LIB|LIBPATH|PATH|VCINSTALLDIR|VCToolsInstallDir|VSINSTALLDIR|UniversalCRTSdkDir|UCRTVersion|WindowsLibPath|WindowsSdkBinPath|WindowsSdkDir|WindowsSDKVersion|VSCMD_ARG_HOST_ARCH|VSCMD_ARG_TGT_ARCH)=(.*)$') {
+              $name = $matches[1]
+              $value = $matches[2]
+              "$name=$value" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+            }
+          }
+
+      - name: Install cibuildwheel
+        run: python -m pip install --upgrade cibuildwheel
+
+      - name: Install uv
+        run: python -m pip install --upgrade uv
+
+      - name: Cache vcpkg source and installed packages
+        uses: actions/cache@v5
+        with:
+          path: .cibw-cache/vcpkg
+          key: cibw-vcpkg-${{ runner.os }}-${{ matrix.vcpkg_triplet }}-${{ hashFiles('vcpkg.json', '.github/workflows/build-vcpkg.yml') }}
+          restore-keys: |
+            cibw-vcpkg-${{ runner.os }}-${{ matrix.vcpkg_triplet }}-
+
+      - name: Prepare vcpkg source checkout
+        shell: bash
+        run: |
+          set -euxo pipefail
+          if [ ! -d .cibw-cache/vcpkg/.git ]; then
+            rm -rf .cibw-cache/vcpkg
+            git clone https://github.com/microsoft/vcpkg .cibw-cache/vcpkg
+          fi
+
+      - name: Prepare Windows pkg-config dependencies via vcpkg
+        if: ${{ startsWith(matrix.os, 'windows') }}
+        shell: pwsh
+        run: |
+          $repo = (Get-Location).Path
+          $vcpkgRoot = Join-Path $repo '.cibw-cache/vcpkg'
+          & (Join-Path $vcpkgRoot 'bootstrap-vcpkg.bat')
+          & (Join-Path $vcpkgRoot 'vcpkg.exe') install --triplet "${{ matrix.vcpkg_triplet }}" --x-manifest-root="$repo" --x-install-root="$vcpkgRoot/installed" --clean-after-build
+
+          $vcpkgInstalled = Join-Path $vcpkgRoot 'installed/${{ matrix.vcpkg_triplet }}'
+          $eigenInclude = Join-Path $vcpkgInstalled 'include/eigen3'
+
+          $pcDir = Join-Path $repo '.pkgconfig'
+          New-Item -ItemType Directory -Force -Path $pcDir | Out-Null
+
+          @(
+            'Name: eigen3',
+            'Description: Eigen3',
+            'Version: 3.4.1',
+            "Cflags: -I$($eigenInclude -replace '\\', '/')"
+          ) | Out-File -FilePath (Join-Path $pcDir 'eigen3.pc') -Encoding ascii
+
+          $pkgConfigPaths = @(
+            $pcDir,
+            (Join-Path $vcpkgInstalled 'lib/pkgconfig'),
+            (Join-Path $vcpkgInstalled 'share/pkgconfig')
+          ) -join ';'
+
+          $pkgconfDir = Join-Path $vcpkgInstalled 'tools/pkgconf'
+          $pkgconfExe = Join-Path $pkgconfDir 'pkgconf.exe'
+          $pkgConfigExe = Join-Path $pkgconfDir 'pkg-config.exe'
+          if ((Test-Path $pkgconfExe) -and (-not (Test-Path $pkgConfigExe))) {
+            Copy-Item -Path $pkgconfExe -Destination $pkgConfigExe
+          }
+
+          "ESSENTIA_WINDOWS_PKG_CONFIG_PATH=$pkgConfigPaths" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "ESSENTIA_WINDOWS_EIGEN_INCLUDE=$eigenInclude" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "ESSENTIA_WINDOWS_INCLUDE_PATHS=$(Join-Path $vcpkgInstalled 'include')" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "ESSENTIA_WINDOWS_LIB_PATHS=$(Join-Path $vcpkgInstalled 'lib')" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "ESSENTIA_WINDOWS_BIN_PATH=$(Join-Path $vcpkgInstalled 'bin')" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "ESSENTIA_WINDOWS_PKG_CONFIG_DIR=$pkgconfDir" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "ESSENTIA_WINDOWS_PKG_CONFIG_EXE=$pkgConfigExe" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          $pkgconfDir | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          $winUtilsDir = Join-Path $env:RUNNER_TEMP 'winutils'
+          New-Item -ItemType Directory -Force -Path $winUtilsDir | Out-Null
+          Copy-Item -Path (Join-Path $env:WINDIR 'System32/where.exe') -Destination (Join-Path $winUtilsDir 'where.exe') -Force
+          $winUtilsDir | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Build wheels (Windows)
+        if: ${{ startsWith(matrix.os, 'windows') }}
+        env:
+          CIBW_BUILD: "cp312-win_amd64 cp313-win_amd64 cp314-win_amd64"
+          CIBW_BUILD_FRONTEND: build[uv]
+          CIBW_BEFORE_BUILD_WINDOWS: "uv pip install --python python delvewheel"
+          CIBW_REPAIR_WHEEL_COMMAND_WINDOWS: 'python -m delvewheel repair --add-path "${{ env.ESSENTIA_WINDOWS_BIN_PATH }}" --wheel-dir {dest_dir} {wheel}'
+          CIBW_TEST_SKIP: "*"
+          ESSENTIA_WHEEL_SKIP_3RDPARTY: "1"
+          PKG_CONFIG: ${{ env.ESSENTIA_WINDOWS_PKG_CONFIG_EXE }}
+          PKG_CONFIG_PATH: ${{ env.ESSENTIA_WINDOWS_PKG_CONFIG_PATH }}
+          CXXFLAGS: /I"${{ env.ESSENTIA_WINDOWS_EIGEN_INCLUDE }}"
+          CFLAGS: /I"${{ env.ESSENTIA_WINDOWS_EIGEN_INCLUDE }}"
+        run: python -m cibuildwheel . --output-dir wheelhouse --config-file cibuildwheel.toml
+
+      - name: Build wheels (Linux/macOS with vcpkg)
+        if: ${{ !startsWith(matrix.os, 'windows') }}
+        env:
+          CIBW_BUILD_FRONTEND: build[uv]
+          CIBW_TEST_SKIP: "*"
+          VCPKG_TRIPLET: ${{ matrix.vcpkg_triplet }}
+          CIBW_BEFORE_ALL_LINUX: bash /project/.github/scripts/cibw_before_all_linux_vcpkg.sh
+          CIBW_ENVIRONMENT_LINUX: >-
+            ESSENTIA_WHEEL_SKIP_3RDPARTY=1
+            ESSENTIA_WHEEL_ONLY_PYTHON=0
+            VCPKG_TRIPLET=${{ matrix.vcpkg_triplet }} PKG_CONFIG_PATH=/project/.pkgconfig:/project/.cibw-cache/vcpkg/installed/$VCPKG_TRIPLET/lib/pkgconfig:/project/.cibw-cache/vcpkg/installed/$VCPKG_TRIPLET/share/pkgconfig
+            CFLAGS='-I/project/.cibw-cache/vcpkg/installed/$VCPKG_TRIPLET/include/eigen3'
+            CXXFLAGS='-I/project/.cibw-cache/vcpkg/installed/$VCPKG_TRIPLET/include/eigen3 -std=c++14'
+          CIBW_REPAIR_WHEEL_COMMAND_LINUX: >-
+            LD_LIBRARY_PATH=/project/.cibw-cache/vcpkg/installed/$VCPKG_TRIPLET/lib:${LD_LIBRARY_PATH} auditwheel repair -w {dest_dir} {wheel}
+          CIBW_BEFORE_ALL_MACOS: bash .github/scripts/cibw_before_all_macos_vcpkg.sh
+          CIBW_ENVIRONMENT_MACOS: >-
+            ESSENTIA_WHEEL_SKIP_3RDPARTY=1
+            ESSENTIA_WHEEL_ONLY_PYTHON=0
+            VCPKG_TRIPLET=${{ matrix.vcpkg_triplet }}
+            PKG_CONFIG_PATH=$PWD/.pkgconfig:$PWD/.cibw-cache/vcpkg/installed/${{ matrix.vcpkg_triplet }}/lib/pkgconfig:$PWD/.cibw-cache/vcpkg/installed/${{ matrix.vcpkg_triplet }}/share/pkgconfig
+            CFLAGS='-I$PWD/.cibw-cache/vcpkg/installed/${{ matrix.vcpkg_triplet }}/include/eigen3'
+            CXXFLAGS='-I$PWD/.cibw-cache/vcpkg/installed/${{ matrix.vcpkg_triplet }}/include/eigen3 -std=c++14'
+        run: python -m cibuildwheel . --output-dir wheelhouse --config-file cibuildwheel.toml
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: wheels-vcpkg-${{ matrix.os }}
+          path: wheelhouse/*.whl
