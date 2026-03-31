@@ -40,6 +40,34 @@ jobs:
           cache: pip
           cache-dependency-path: .github/workflows/build-vcpkg.yml
 
+      - name: Initialize MSVC environment
+        if: ${{ startsWith(matrix.os, 'windows') }}
+        shell: pwsh
+        run: |
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
+          if (-not (Test-Path $vswhere)) {
+            throw "vswhere.exe not found: $vswhere"
+          }
+
+          $vsInstall = & $vswhere -latest -products * -property installationPath
+          if (-not $vsInstall) {
+            throw "Visual Studio installation path not found via vswhere."
+          }
+
+          $vsDevCmd = Join-Path $vsInstall 'Common7\Tools\VsDevCmd.bat'
+          if (-not (Test-Path $vsDevCmd)) {
+            throw "VsDevCmd.bat not found: $vsDevCmd"
+          }
+
+          $envDump = cmd /c "`"$vsDevCmd`" -arch=x64 -host_arch=x64 >nul && set"
+          foreach ($line in $envDump) {
+            if ($line -match '^(INCLUDE|LIB|LIBPATH|PATH|VCINSTALLDIR|VCToolsInstallDir|VSINSTALLDIR|UniversalCRTSdkDir|UCRTVersion|WindowsLibPath|WindowsSdkBinPath|WindowsSdkDir|WindowsSDKVersion|VSCMD_ARG_HOST_ARCH|VSCMD_ARG_TGT_ARCH)=(.*)$') {
+              $name = $matches[1]
+              $value = $matches[2]
+              "$name=$value" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+            }
+          }
+
       - name: Install cibuildwheel
         run: python -m pip install --upgrade cibuildwheel
 
