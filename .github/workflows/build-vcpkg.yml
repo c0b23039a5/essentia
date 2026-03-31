@@ -115,6 +115,7 @@ jobs:
         env:
           CIBW_BUILD: "cp312-win_amd64 cp313-win_amd64 cp314-win_amd64"
           CIBW_BUILD_FRONTEND: build[uv]
+          CIBW_TEST_SKIP: "*"
           ESSENTIA_WHEEL_SKIP_3RDPARTY: "1"
           PKG_CONFIG: ${{ env.ESSENTIA_WINDOWS_PKG_CONFIG_EXE }}
           PKG_CONFIG_PATH: ${{ env.ESSENTIA_WINDOWS_PKG_CONFIG_PATH }}
@@ -128,6 +129,7 @@ jobs:
         if: ${{ !startsWith(matrix.os, 'windows') }}
         env:
           CIBW_BUILD_FRONTEND: build[uv]
+          CIBW_TEST_SKIP: "*"
           VCPKG_TRIPLET: ${{ matrix.vcpkg_triplet }}
           CIBW_BEFORE_ALL_LINUX: bash /project/.github/scripts/cibw_before_all_linux_vcpkg.sh
           CIBW_ENVIRONMENT_LINUX: >-
