@@ -120,8 +120,6 @@ jobs:
           ESSENTIA_WHEEL_SKIP_3RDPARTY: "1"
           PKG_CONFIG: ${{ env.ESSENTIA_WINDOWS_PKG_CONFIG_EXE }}
           PKG_CONFIG_PATH: ${{ env.ESSENTIA_WINDOWS_PKG_CONFIG_PATH }}
-          INCLUDE: ${{ env.ESSENTIA_WINDOWS_INCLUDE_PATHS }};${{ env.ESSENTIA_WINDOWS_EIGEN_INCLUDE }};${{ env.INCLUDE }}
-          LIB: ${{ env.ESSENTIA_WINDOWS_LIB_PATHS }};${{ env.LIB }}
           CXXFLAGS: /I"${{ env.ESSENTIA_WINDOWS_EIGEN_INCLUDE }}"
           CFLAGS: /I"${{ env.ESSENTIA_WINDOWS_EIGEN_INCLUDE }}"
         run: python -m cibuildwheel . --output-dir wheelhouse --config-file cibuildwheel.toml
