@@ -130,6 +130,7 @@ jobs:
           "ESSENTIA_WINDOWS_EIGEN_INCLUDE=$eigenInclude" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "ESSENTIA_WINDOWS_INCLUDE_PATHS=$(Join-Path $vcpkgInstalled 'include')" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "ESSENTIA_WINDOWS_LIB_PATHS=$(Join-Path $vcpkgInstalled 'lib')" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "ESSENTIA_WINDOWS_BIN_PATH=$(Join-Path $vcpkgInstalled 'bin')" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "ESSENTIA_WINDOWS_PKG_CONFIG_DIR=$pkgconfDir" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "ESSENTIA_WINDOWS_PKG_CONFIG_EXE=$pkgConfigExe" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           $pkgconfDir | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
@@ -144,6 +145,7 @@ jobs:
           CIBW_BUILD: "cp312-win_amd64 cp313-win_amd64 cp314-win_amd64"
           CIBW_BUILD_FRONTEND: build[uv]
           CIBW_BEFORE_BUILD_WINDOWS: "uv pip install --python python delvewheel"
+          CIBW_REPAIR_WHEEL_COMMAND_WINDOWS: 'python -m delvewheel repair --add-path "${{ env.ESSENTIA_WINDOWS_BIN_PATH }}" --wheel-dir {dest_dir} {wheel}'
           CIBW_TEST_SKIP: "*"
           ESSENTIA_WHEEL_SKIP_3RDPARTY: "1"
           PKG_CONFIG: ${{ env.ESSENTIA_WINDOWS_PKG_CONFIG_EXE }}
