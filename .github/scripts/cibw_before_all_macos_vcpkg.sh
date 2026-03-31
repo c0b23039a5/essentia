@@ -17,7 +17,7 @@ mkdir -p "$ROOT/.pkgconfig"
 cat > "$ROOT/.pkgconfig/eigen3.pc" <<PC
 Name: eigen3
 Description: Eigen3
-Version: 3.4.0
+Version: 3.4.1
 Cflags: -I$VCPKG_ROOT/installed/$TRIPLET/include/eigen3
 PC
 

@@ -109,7 +109,7 @@ jobs:
           @(
             'Name: eigen3',
             'Description: Eigen3',
-            'Version: 3.4.0',
+            'Version: 3.4.1',
             "Cflags: -I$($eigenInclude -replace '\\', '/')"
           ) | Out-File -FilePath (Join-Path $pcDir 'eigen3.pc') -Encoding ascii
 
