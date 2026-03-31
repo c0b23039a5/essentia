@@ -115,6 +115,7 @@ jobs:
         env:
           CIBW_BUILD: "cp312-win_amd64 cp313-win_amd64 cp314-win_amd64"
           CIBW_BUILD_FRONTEND: build[uv]
+          CIBW_BEFORE_BUILD_WINDOWS: "python -m ensurepip --upgrade && python -m pip install --upgrade pip delvewheel"
           CIBW_TEST_SKIP: "*"
           ESSENTIA_WHEEL_SKIP_3RDPARTY: "1"
           PKG_CONFIG: ${{ env.ESSENTIA_WINDOWS_PKG_CONFIG_EXE }}
