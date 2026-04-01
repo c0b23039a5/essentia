@@ -23,6 +23,8 @@
 #include "../streamingalgorithm.h"
 #include "../../pool.h"
 #include <algorithm>
+#include <cstdio>
+#include <string>
 
 namespace essentia {
 namespace streaming {
@@ -49,6 +51,38 @@ class PoolStorageBase : public Algorithm {
 
 };
 
+inline void poolStorageDebugPrintValue(const std::string& descriptorName, const Real& value) {
+  fprintf(stderr, "PoolStorage write desc='%s' scalar Real=%f\n",
+          descriptorName.c_str(), (double)value);
+  fflush(stderr);
+}
+
+inline void poolStorageDebugPrintValue(const std::string& descriptorName, const int& value) {
+  fprintf(stderr, "PoolStorage write desc='%s' scalar int=%d\n",
+          descriptorName.c_str(), value);
+  fflush(stderr);
+}
+
+inline void poolStorageDebugPrintValue(const std::string& descriptorName, const std::string& value) {
+  fprintf(stderr, "PoolStorage write desc='%s' scalar string='%s'\n",
+          descriptorName.c_str(), value.c_str());
+  fflush(stderr);
+}
+
+template <typename T>
+inline void poolStorageDebugPrintValue(const std::string& descriptorName, const T&) {
+  fprintf(stderr, "PoolStorage write desc='%s' scalar <unprintable-type>\n",
+          descriptorName.c_str());
+  fflush(stderr);
+}
+
+template <typename T>
+inline void poolStorageDebugPrintVectorHead(const std::string& descriptorName, const std::vector<T>& values) {
+  fprintf(stderr, "PoolStorage append desc='%s' count=%d\n",
+          descriptorName.c_str(), (int)values.size());
+  fflush(stderr);
+}
+
 template <typename TokenType, typename StorageType = TokenType>
 class PoolStorage : public PoolStorageBase {
  protected:
@@ -69,6 +103,13 @@ class PoolStorage : public PoolStorageBase {
   AlgorithmStatus process() {
     EXEC_DEBUG("process(), for desc: " << _descriptorName);
 
+    fprintf(stderr, "PoolStorage process desc='%s' available=%d maxContiguous=%d setSingle=%d\n",
+            _descriptorName.c_str(),
+            _descriptor.available(),
+            _descriptor.buffer().bufferInfo().maxContiguousElements,
+            (int)_setSingle);
+    fflush(stderr);
+
     int ntokens = (std::min)(_descriptor.available(),
                            _descriptor.buffer().bufferInfo().maxContiguousElements);
     ntokens = (std::max)(ntokens, 1);
@@ -77,18 +118,27 @@ class PoolStorage : public PoolStorageBase {
     // thus need to  +1. And we're still on the safe side, see acquireForRead (phantombuffer_impl.cpp)
     EXEC_DEBUG("trying to acquire " << ntokens << " tokens");
     if (!_descriptor.acquire(ntokens)) {
+      fprintf(stderr, "PoolStorage acquire failed desc='%s' ntokens=%d\n",
+              _descriptorName.c_str(), ntokens);
+      fflush(stderr);
       return NO_INPUT;
     }
 
     EXEC_DEBUG("appending tokens to pool");
     if (ntokens > 1) {
+      poolStorageDebugPrintVectorHead(_descriptorName, _descriptor.tokens());
       _pool->append(_descriptorName, _descriptor.tokens());
     }
     else {
-      addToPool((StorageType)_descriptor.firstToken());
+      StorageType value = (StorageType)_descriptor.firstToken();
+      poolStorageDebugPrintValue(_descriptorName, value);
+      addToPool(value);
     }
 
     EXEC_DEBUG("releasing");
+    fprintf(stderr, "PoolStorage release desc='%s' ntokens=%d\n",
+            _descriptorName.c_str(), ntokens);
+    fflush(stderr);
     _descriptor.release(ntokens);
 
     return OK;
