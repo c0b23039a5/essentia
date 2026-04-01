@@ -19,7 +19,7 @@
 
 #include "audioloader.h"
 #include "algorithmfactory.h"
-#include <iomanip>  //  setw()
+#include <iomanip>  // setw()
 
 using namespace std;
 
@@ -87,9 +87,7 @@ AudioLoader::~AudioLoader() {
 }
 
 void AudioLoader::configure() {
-  // set ffmpeg to be silent by default, so we don't have these annoying
-  // "invalid new backstep" messages anymore, when everything is actually fine
-  av_log_set_level(AV_LOG_QUIET);   // choices: {AV_LOG_VERBOSE, AV_LOG_QUIET}
+  av_log_set_level(AV_LOG_QUIET);
   _computeMD5 = parameter("computeMD5").toBool();
   _selectedStream = parameter("audioStream").toInt();
   reset();
@@ -99,7 +97,6 @@ void AudioLoader::configure() {
 void AudioLoader::openAudioFile(const string& filename) {
   E_DEBUG(EAlgorithm, "AudioLoader: opening file: " << filename);
 
-  // Open file
   int errnum;
   if ((errnum = avformat_open_input(&_demuxCtx, filename.c_str(), NULL, NULL)) != 0) {
     char errorstr[128];
@@ -108,7 +105,6 @@ void AudioLoader::openAudioFile(const string& filename) {
     throw EssentiaException("AudioLoader: Could not open file \"", filename, "\", error = ", error);
   }
 
-  // Retrieve stream information
   if ((errnum = avformat_find_stream_info(_demuxCtx, NULL)) < 0) {
     char errorstr[128];
     string error = "Unknown error";
@@ -118,9 +114,8 @@ void AudioLoader::openAudioFile(const string& filename) {
     throw EssentiaException("AudioLoader: Could not find stream information, error = ", error);
   }
 
-  // Check that we have only 1 audio stream in the file
   _streams.clear();
-  for (int i=0; i<(int)_demuxCtx->nb_streams; i++) {
+  for (int i = 0; i < (int)_demuxCtx->nb_streams; i++) {
     const AVCodecParameters* codecParams = _demuxCtx->streams[i]->codecpar;
     if (codecParams->codec_type == AVMEDIA_TYPE_AUDIO) {
       _streams.push_back(i);
@@ -143,7 +138,6 @@ void AudioLoader::openAudioFile(const string& filename) {
 
   _streamIdx = _streams[_selectedStream];
 
-  // Create codec context from stream parameters (modern approach)
   const AVCodecParameters* codecParams = _demuxCtx->streams[_streamIdx]->codecpar;
   _audioCodec = avcodec_find_decoder(codecParams->codec_id);
 
@@ -156,7 +150,6 @@ void AudioLoader::openAudioFile(const string& filename) {
     throw EssentiaException("AudioLoader: Could not allocate codec context");
   }
 
-  // Copy parameters from stream to codec context
   if (avcodec_parameters_to_context(_audioCtx, codecParams) < 0) {
     avcodec_free_context(&_audioCtx);
     throw EssentiaException("AudioLoader: Could not copy codec parameters");
@@ -167,7 +160,6 @@ void AudioLoader::openAudioFile(const string& filename) {
     throw EssentiaException("AudioLoader: Unable to instantiate codec...");
   }
 
-  // Configure format conversion (no samplerate conversion yet)
   AVChannelLayout layout;
   if (_audioCtx->ch_layout.nb_channels > 0) {
     layout = _audioCtx->ch_layout;
@@ -219,6 +211,7 @@ void AudioLoader::closeAudioFile() {
   if (_audioCtx) {
     avcodec_free_context(&_audioCtx);
   }
+
   if (_demuxCtx) avformat_close_input(&_demuxCtx);
 
   av_packet_unref(&_packet);
@@ -237,7 +230,6 @@ void AudioLoader::pushChannelsSampleRateInfo(int nChannels, Real sampleRate) {
   }
 
   _nChannels = nChannels;
-
   _channels.push(nChannels);
   _sampleRate.push(sampleRate);
 }
@@ -251,8 +243,8 @@ void AudioLoader::pushCodecInfo(std::string codec, int bit_rate) {
 
 string uint8_t_to_hex(uint8_t* input, int size) {
   ostringstream result;
-  for (int i=0; i<size; ++i) {
-    result << setw(2) << setfill('0') << hex << (int) input[i];
+  for (int i = 0; i < size; ++i) {
+    result << setw(2) << setfill('0') << hex << (int)input[i];
   }
   return result.str();
 }
@@ -261,6 +253,18 @@ string uint8_t_to_hex(uint8_t* input, int size) {
 AlgorithmStatus AudioLoader::process() {
   if (!parameter("filename").isConfigured()) {
     throw EssentiaException("AudioLoader: Trying to call process() on an AudioLoader algo which hasn't been correctly configured.");
+  }
+
+  // reset() では push せず、scheduler に最初に呼ばれた process() で
+  // cached metadata を 1 回だけ出力する
+  if (!_metadataSent && _metadataChannels > 0 && _metadataSampleRate > 0) {
+    pushChannelsSampleRateInfo(_metadataChannels, _metadataSampleRate);
+    _metadataSent = true;
+  }
+
+  if (!_codecInfoSent) {
+    pushCodecInfo(_metadataCodec, _metadataBitRate);
+    _codecInfoSent = true;
   }
 
   do {
@@ -339,56 +343,12 @@ AlgorithmStatus AudioLoader::process() {
   int consumed = decodePacket();
   (void)consumed;
 
-  AVStream* stream = 0;
-  AVCodecParameters* codecParams = 0;
-  if (_demuxCtx && _streamIdx >= 0 && _streamIdx < (int)_demuxCtx->nb_streams && _demuxCtx->streams[_streamIdx]) {
-    stream = _demuxCtx->streams[_streamIdx];
-    codecParams = _demuxCtx->streams[_streamIdx]->codecpar;
-  }
-
-  if (!_metadataSent) {
-    int nChannels = guessChannelCount(_audioCtx, codecParams, _decodedFrame);
-    if (nChannels <= 0 && _nChannels > 0) {
-      nChannels = _nChannels;
-    }
-    Real sampleRate = guessSampleRate(_audioCtx, codecParams, _decodedFrame, stream);
-
-    if (nChannels > 0 && sampleRate > 0) {
-      _metadataChannels = nChannels;
-      _metadataSampleRate = sampleRate;
-      pushChannelsSampleRateInfo(_metadataChannels, _metadataSampleRate);
-      _metadataSent = true;
-    }
-  }
-
-  if (!_codecInfoSent) {
-    if (_metadataCodec.empty() && _audioCodec && _audioCodec->name) {
-      _metadataCodec = _audioCodec->name;
-    }
-    if (_metadataBitRate <= 0 && _audioCtx) {
-      _metadataBitRate = _audioCtx->bit_rate;
-    }
-    if (_metadataBitRate <= 0 && codecParams) {
-      _metadataBitRate = codecParams->bit_rate;
-    }
-    if (_metadataBitRate <= 0 && _demuxCtx) {
-      _metadataBitRate = _demuxCtx->bit_rate;
-    }
-    if (_metadataBitRate < 0) {
-      _metadataBitRate = 0;
-    }
-
-    pushCodecInfo(_metadataCodec, _metadataBitRate);
-    _codecInfoSent = true;
-  }
-
   if (_dataSize > 0) {
     copyFFmpegOutput();
     _dataSize = 0;
   }
 
   av_packet_unref(&_packet);
-
   return OK;
 }
 
@@ -397,7 +357,6 @@ int AudioLoader::decode_audio_frame(AVCodecContext* audioCtx,
                                     float* output,
                                     int* outputSize,
                                     AVPacket* packet) {
-
   int gotFrame = 0;
   av_frame_unref(_decodedFrame);
 
@@ -439,7 +398,7 @@ int AudioLoader::decode_audio_frame(AVCodecContext* audioCtx,
     }
     else {
       int samplesWrittern = swr_convert(_convertCtxAv,
-                                        (uint8_t**) &output,
+                                        (uint8_t**)&output,
                                         outputBufferSamples,
                                         (const uint8_t**)_decodedFrame->data,
                                         inputSamples);
@@ -603,16 +562,15 @@ void AudioLoader::copyFFmpegOutput() {
   }
 
   vector<StereoSample>& audio = *((vector<StereoSample>*)_audio.getTokens());
-
   float* fbuf = (float*)_buffer;
 
   if (_nChannels == 1) {
-    for (int i=0; i<nsamples; i++) {
+    for (int i = 0; i < nsamples; i++) {
       audio[i].left() = fbuf[i];
     }
   }
   else {
-    for (int i=0; i<nsamples; i++) {
+    for (int i = 0; i < nsamples; i++) {
       audio[i].left() = fbuf[2*i];
       audio[i].right() = fbuf[2*i+1];
     }
