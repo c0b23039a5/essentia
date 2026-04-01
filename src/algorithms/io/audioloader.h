@@ -42,9 +42,9 @@ class AudioLoader : public Algorithm {
 
   int _nChannels;
 
-  // MAX_AUDIO_FRAME_SIZE is in bytes, multiply it by 2 to get some margin, 
-  // because we might want to decode multiple frames in this buffer (all the 
-  // frames contained in a packet, which can be more than 1 as in flac), and 
+  // MAX_AUDIO_FRAME_SIZE is in bytes, multiply it by 2 to get some margin,
+  // because we might want to decode multiple frames in this buffer (all the
+  // frames contained in a packet, which can be more than 1 as in flac), and
   // each time we decode a frame we need to have at least a full buffer of free space.
   const int FFMPEG_BUFFER_SIZE = MAX_AUDIO_FRAME_SIZE * 2;
 
@@ -66,7 +66,13 @@ class AudioLoader : public Algorithm {
   std::vector<int> _streams;
   int _selectedStream;
   bool _configured;
-  bool _loggedFirstReceiveFrame;
+
+  bool _metadataSent;
+  bool _codecInfoSent;
+  int _metadataChannels;
+  Real _metadataSampleRate;
+  int _metadataBitRate;
+  std::string _metadataCodec;
 
 
   void openAudioFile(const std::string& filename);
@@ -82,9 +88,11 @@ class AudioLoader : public Algorithm {
 
 
  public:
-  AudioLoader() : Algorithm(), _buffer(0),  _demuxCtx(0),
-	          _audioCtx(0), _audioCodec(0), _decodedFrame(0),
-            _convertCtxAv(0), _configured(false) {
+  AudioLoader() : Algorithm(), _buffer(0), _dataSize(0), _demuxCtx(0),
+                  _audioCtx(0), _audioCodec(0), _computeMD5(false), _decodedFrame(0),
+                  _convertCtxAv(0), _streamIdx(-1), _selectedStream(0), _configured(false),
+                  _metadataSent(false), _codecInfoSent(false), _metadataChannels(0),
+                  _metadataSampleRate(0.0), _metadataBitRate(0), _metadataCodec("") {
 
     declareOutput(_audio, 1, "audio", "the input audio signal");
     declareOutput(_sampleRate, 0, "sampleRate", "the sampling rate of the audio signal [Hz]");
@@ -92,8 +100,6 @@ class AudioLoader : public Algorithm {
     declareOutput(_md5, 0, "md5", "the MD5 checksum of raw undecoded audio payload");
     declareOutput(_bit_rate, 0, "bit_rate", "the bit rate of the input audio, as reported by the decoder codec");
     declareOutput(_codec, 0, "codec", "the codec that is used to decode the input audio");
-
-    _loggedFirstReceiveFrame = false;
 
     _audio.setBufferType(BufferUsage::forLargeAudioStream);
 
@@ -108,7 +114,7 @@ class AudioLoader : public Algorithm {
 
     _md5Encoded = av_md5_alloc();
     if (!_md5Encoded) {
-        throw EssentiaException("Error allocating the MD5 context");
+      throw EssentiaException("Error allocating the MD5 context");
     }
   }
 
