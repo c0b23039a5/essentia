@@ -66,6 +66,7 @@ class AudioLoader : public Algorithm {
   std::vector<int> _streams;
   int _selectedStream;
   bool _configured;
+  bool _loggedFirstReceiveFrame;
 
 
   void openAudioFile(const std::string& filename);
@@ -91,6 +92,8 @@ class AudioLoader : public Algorithm {
     declareOutput(_md5, 0, "md5", "the MD5 checksum of raw undecoded audio payload");
     declareOutput(_bit_rate, 0, "bit_rate", "the bit rate of the input audio, as reported by the decoder codec");
     declareOutput(_codec, 0, "codec", "the codec that is used to decode the input audio");
+
+    _loggedFirstReceiveFrame = false;
 
     _audio.setBufferType(BufferUsage::forLargeAudioStream);
 

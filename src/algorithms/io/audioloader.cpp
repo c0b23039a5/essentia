@@ -26,6 +26,31 @@ using namespace std;
 namespace essentia {
 namespace streaming {
 
+namespace {
+
+int nbChannelsOrMinus1(const AVChannelLayout* layout) {
+    return layout ? layout->nb_channels : -1;
+}
+
+void logMetadataSnapshot(const char* stage,
+                         int streamIdx,
+                         const AVCodecParameters* codecParams,
+                         const AVCodecContext* audioCtx,
+                         const AVFrame* decodedFrame) {
+    ostringstream msg;
+    msg << "AudioLoader metadata snapshot [" << stage << "]"
+        << " streamIdx=" << streamIdx
+        << " | codecpar.sample_rate=" << (codecParams ? codecParams->sample_rate : -1)
+        << " codecpar.ch_layout.nb_channels=" << (codecParams ? nbChannelsOrMinus1(&codecParams->ch_layout) : -1)
+        << " | audioCtx.sample_rate=" << (audioCtx ? audioCtx->sample_rate : -1)
+        << " audioCtx.ch_layout.nb_channels=" << (audioCtx ? nbChannelsOrMinus1(&audioCtx->ch_layout) : -1)
+        << " | decodedFrame.sample_rate=" << (decodedFrame ? decodedFrame->sample_rate : -1)
+        << " decodedFrame.ch_layout.nb_channels=" << (decodedFrame ? nbChannelsOrMinus1(&decodedFrame->ch_layout) : -1);
+    E_WARNING(msg.str());
+}
+
+} // namespace
+
 const char* AudioLoader::name = essentia::standard::AudioLoader::name;
 const char* AudioLoader::category = essentia::standard::AudioLoader::category;
 const char* AudioLoader::description = essentia::standard::AudioLoader::description;
@@ -91,7 +116,7 @@ void AudioLoader::openAudioFile(const string& filename) {
     if (_selectedStream >= nAudioStreams) {
         avformat_close_input(&_demuxCtx);
         _demuxCtx = 0;
-        throw EssentiaException("AudioLoader ERROR: 'audioStream' parameter set to ", _selectedStream ,". It should be smaller than the audio streams count, ", nAudioStreams);
+        throw EssentiaException("AudioLoader ERROR: 'audioStream' parameter set to ", _selectedStream ," It should be smaller than the audio streams count, ", nAudioStreams);
     }
 
     _streamIdx = _streams[_selectedStream];
@@ -99,6 +124,12 @@ void AudioLoader::openAudioFile(const string& filename) {
     // Create codec context from stream parameters (modern approach)
     const AVCodecParameters* codecParams = _demuxCtx->streams[_streamIdx]->codecpar;
     _audioCodec = avcodec_find_decoder(codecParams->codec_id);
+
+    logMetadataSnapshot("after avformat_find_stream_info",
+                        _streamIdx,
+                        codecParams,
+                        _audioCtx,
+                        0);
 
     if (!_audioCodec) {
         throw EssentiaException("AudioLoader: Unsupported codec!");
@@ -115,10 +146,22 @@ void AudioLoader::openAudioFile(const string& filename) {
         throw EssentiaException("AudioLoader: Could not copy codec parameters");
     }
 
+    logMetadataSnapshot("after avcodec_parameters_to_context",
+                        _streamIdx,
+                        codecParams,
+                        _audioCtx,
+                        0);
+
     if (avcodec_open2(_audioCtx, _audioCodec, NULL) < 0) {
         avcodec_free_context(&_audioCtx);
         throw EssentiaException("AudioLoader: Unable to instantiate codec...");
     }
+
+    logMetadataSnapshot("after avcodec_open2",
+                        _streamIdx,
+                        codecParams,
+                        _audioCtx,
+                        0);
   
     // Configure format conversion (no samplerate conversion yet)
     // Use modern channel layout API
@@ -433,6 +476,16 @@ int AudioLoader::decodePacket() {
         return 0;
     }
 
+    if (!_loggedFirstReceiveFrame) {
+        const AVCodecParameters* codecParams = _demuxCtx->streams[_streamIdx]->codecpar;
+        logMetadataSnapshot("after first avcodec_receive_frame",
+                            _streamIdx,
+                            codecParams,
+                            _audioCtx,
+                            _decodedFrame);
+        _loggedFirstReceiveFrame = true;
+    }
+
     // We got a frame -> convert it to float interleaved
     int inputSamples = _decodedFrame->nb_samples;
     // compute expected number of output bytes for these samples
@@ -514,6 +567,7 @@ void AudioLoader::copyFFmpegOutput() {
 void AudioLoader::reset() {
     Algorithm::reset();
 
+    _loggedFirstReceiveFrame = false;
     if (!parameter("filename").isConfigured()) return;
 
     string filename = parameter("filename").toString();
