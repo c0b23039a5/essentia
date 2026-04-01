@@ -19,7 +19,8 @@
 
 #include "audioloader.h"
 #include "algorithmfactory.h"
-#include <iomanip>  //  setw()
+#include <iomanip>  // setw()
+#include <cstdio>
 
 using namespace std;
 
@@ -37,6 +38,22 @@ void logMetadataSnapshot(const char* stage,
                          const AVCodecParameters* codecParams,
                          const AVCodecContext* audioCtx,
                          const AVFrame* decodedFrame) {
+    fprintf(stderr,
+            "AudioLoader probe: %s\n"
+            "  streamIdx=%d\n"
+            "  codecpar.sample_rate=%d codecpar.ch_layout.nb_channels=%d\n"
+            "  audioCtx.sample_rate=%d audioCtx.ch_layout.nb_channels=%d\n"
+            "  decodedFrame.sample_rate=%d decodedFrame.ch_layout.nb_channels=%d\n",
+            stage,
+            streamIdx,
+            codecParams ? codecParams->sample_rate : -1,
+            codecParams ? nbChannelsOrMinus1(&codecParams->ch_layout) : -1,
+            audioCtx ? audioCtx->sample_rate : -1,
+            audioCtx ? nbChannelsOrMinus1(&audioCtx->ch_layout) : -1,
+            decodedFrame ? decodedFrame->sample_rate : -1,
+            decodedFrame ? nbChannelsOrMinus1(&decodedFrame->ch_layout) : -1);
+    fflush(stderr);
+
     ostringstream msg;
     msg << "AudioLoader metadata snapshot [" << stage << "]"
         << " streamIdx=" << streamIdx
@@ -76,6 +93,8 @@ void AudioLoader::configure() {
 
 void AudioLoader::openAudioFile(const string& filename) {
     E_DEBUG(EAlgorithm, "AudioLoader: opening file: " << filename);
+    fprintf(stderr, "AudioLoader probe: openAudioFile reached: %s\n", filename.c_str());
+    fflush(stderr);
 
     // Open file
     int errnum;
@@ -106,7 +125,7 @@ void AudioLoader::openAudioFile(const string& filename) {
         }
     }
     int nAudioStreams = _streams.size();
-    
+
     if (nAudioStreams == 0) {
         avformat_close_input(&_demuxCtx);
         _demuxCtx = 0;
@@ -116,7 +135,7 @@ void AudioLoader::openAudioFile(const string& filename) {
     if (_selectedStream >= nAudioStreams) {
         avformat_close_input(&_demuxCtx);
         _demuxCtx = 0;
-        throw EssentiaException("AudioLoader ERROR: 'audioStream' parameter set to ", _selectedStream ," It should be smaller than the audio streams count, ", nAudioStreams);
+        throw EssentiaException("AudioLoader ERROR: 'audioStream' parameter set to ", _selectedStream, ". It should be smaller than the audio streams count, ", nAudioStreams);
     }
 
     _streamIdx = _streams[_selectedStream];
@@ -162,7 +181,7 @@ void AudioLoader::openAudioFile(const string& filename) {
                         codecParams,
                         _audioCtx,
                         0);
-  
+
     // Configure format conversion (no samplerate conversion yet)
     // Use modern channel layout API
     AVChannelLayout layout;
@@ -175,7 +194,7 @@ void AudioLoader::openAudioFile(const string& filename) {
 
     E_DEBUG(EAlgorithm, "AudioLoader: using sample format conversion from libswresample");
     _convertCtxAv = swr_alloc();
-        
+
     // Use modern channel layout API for swresample configuration
     av_opt_set_chlayout(_convertCtxAv, "in_chlayout", &layout, 0);
     av_opt_set_chlayout(_convertCtxAv, "out_chlayout", &layout, 0);
@@ -226,6 +245,10 @@ void AudioLoader::closeAudioFile() {
 
 
 void AudioLoader::pushChannelsSampleRateInfo(int nChannels, Real sampleRate) {
+    fprintf(stderr, "PUSH sampleRate=%f numberChannels=%d\n",
+            (double)sampleRate, nChannels);
+    fflush(stderr);
+
     if (nChannels > 2) {
         throw EssentiaException("AudioLoader: could not load audio. Audio file has more than 2 channels.");
     }
@@ -241,6 +264,10 @@ void AudioLoader::pushChannelsSampleRateInfo(int nChannels, Real sampleRate) {
 
 
 void AudioLoader::pushCodecInfo(std::string codec, int bit_rate) {
+    fprintf(stderr, "PUSH codec='%s' bit_rate=%d\n",
+            codec.c_str(), bit_rate);
+    fflush(stderr);
+
     _codec.push(codec);
     _bit_rate.push(bit_rate);
 }
@@ -248,7 +275,7 @@ void AudioLoader::pushCodecInfo(std::string codec, int bit_rate) {
 
 string uint8_t_to_hex(uint8_t* input, int size) {
     ostringstream result;
-    for(int i=0; i<size; ++i) {
+    for (int i=0; i<size; ++i) {
         result << setw(2) << setfill('0') << hex << (int) input[i];
     }
     return result.str();
@@ -292,10 +319,11 @@ AlgorithmStatus AudioLoader::process() {
     if (_computeMD5) {
         av_md5_update(_md5Encoded, _packet.data, _packet.size);
     }
-    
+
     // decode ONE frame from this packet (if any). decodePacket() will
     // *not* mutate _packet.data/_packet.size. It will set _dataSize to number of bytes written.
     int consumed = decodePacket();
+    (void)consumed;
 
     // After decodePacket we may have produced audio in _buffer (bytes in _dataSize).
     if (_dataSize > 0) {
@@ -304,10 +332,10 @@ AlgorithmStatus AudioLoader::process() {
         // reset _dataSize so we don't accidentally reuse it
         _dataSize = 0;
     }
-    
+
     // needs to be freed using modern API !!
     av_packet_unref(&_packet);
-    
+
     return OK;
 }
 
@@ -344,12 +372,12 @@ int AudioLoader::decode_audio_frame(AVCodecContext* audioCtx,
         int inputPlaneSize = av_samples_get_buffer_size(NULL, _nChannels, inputSamples,
                                                         audioCtx->sample_fmt, 1);
         int outputPlaneSize = av_samples_get_buffer_size(NULL, _nChannels, inputSamples,
-                                                        AV_SAMPLE_FMT_FLT, 1);
+                                                         AV_SAMPLE_FMT_FLT, 1);
         // the size of the output buffer in samples
-        int outputBufferSamples = *outputSize / 
+        int outputBufferSamples = *outputSize /
                 (av_get_bytes_per_sample(AV_SAMPLE_FMT_FLT) * _nChannels);
 
-        if (outputBufferSamples < inputSamples) { 
+        if (outputBufferSamples < inputSamples) {
             // this should never happen, throw exception here
             throw EssentiaException("AudioLoader: Insufficient buffer size for format conversion");
         }
@@ -360,28 +388,28 @@ int AudioLoader::decode_audio_frame(AVCodecContext* audioCtx,
             memcpy(output, _decodedFrame->data[0], inputPlaneSize);
         }
         else {
-          int samplesWrittern = swr_convert(_convertCtxAv,
-                                          (uint8_t**) &output, 
-                                          outputBufferSamples, 
-                                          (const uint8_t**)_decodedFrame->data,
-                                          inputSamples);
+            int samplesWrittern = swr_convert(_convertCtxAv,
+                                              (uint8_t**) &output,
+                                              outputBufferSamples,
+                                              (const uint8_t**)_decodedFrame->data,
+                                              inputSamples);
 
-          if (samplesWrittern < inputSamples) {
-              // TODO: there may be data remaining in the internal FIFO buffer
-              // to get this data: call swr_convert() with NULL input
-              // Test if this happens in practice
-              ostringstream msg;
-              msg << "AudioLoader: Incomplete format conversion (some samples missing)"
-                  << " from " << av_get_sample_fmt_name(_audioCtx->sample_fmt)
-                  << " to "   << av_get_sample_fmt_name(AV_SAMPLE_FMT_FLT);
-              throw EssentiaException(msg);
-          }
+            if (samplesWrittern < inputSamples) {
+                // TODO: there may be data remaining in the internal FIFO buffer
+                // to get this data: call swr_convert() with NULL input
+                // Test if this happens in practice
+                ostringstream msg;
+                msg << "AudioLoader: Incomplete format conversion (some samples missing)"
+                    << " from " << av_get_sample_fmt_name(_audioCtx->sample_fmt)
+                    << " to "   << av_get_sample_fmt_name(AV_SAMPLE_FMT_FLT);
+                throw EssentiaException(msg);
+            }
         }
         *outputSize = outputPlaneSize;
     }
     else {
-      E_DEBUG(EAlgorithm, "AudioLoader: tried to decode packet but didn't get any frame...");
-      *outputSize = 0;
+        E_DEBUG(EAlgorithm, "AudioLoader: tried to decode packet but didn't get any frame...");
+        *outputSize = 0;
     }
 
     // Return the number of bytes consumed from the packet
@@ -427,7 +455,7 @@ void AudioLoader::flushPacket() {
                                                  inputSamples);
                 if (samplesWritten > 0) {
                     _dataSize = (std::min)(samplesWritten * _nChannels * av_get_bytes_per_sample(AV_SAMPLE_FMT_FLT),
-                                         FFMPEG_BUFFER_SIZE);
+                                           FFMPEG_BUFFER_SIZE);
                 }
             }
         }
@@ -550,14 +578,14 @@ void AudioLoader::copyFFmpegOutput() {
 
     if (_nChannels == 1) {
         for (int i=0; i<nsamples; i++) {
-          audio[i].left() = fbuf[i];
+            audio[i].left() = fbuf[i];
         }
     }
     else { // _nChannels == 2
-      for (int i=0; i<nsamples; i++) {
-        audio[i].left() = fbuf[2*i];
-        audio[i].right() = fbuf[2*i+1];
-      }
+        for (int i=0; i<nsamples; i++) {
+            audio[i].left() = fbuf[2*i];
+            audio[i].right() = fbuf[2*i+1];
+        }
     }
 
     _audio.release(nsamples);
@@ -574,6 +602,13 @@ void AudioLoader::reset() {
 
     closeAudioFile();
     openAudioFile(filename);
+
+    fprintf(stderr, "RESET PUSH sr=%f ch=%d codec='%s' br=%d\n",
+            _audioCtx ? (double)_audioCtx->sample_rate : -1.0,
+            _audioCtx ? (int)_audioCtx->ch_layout.nb_channels : -1,
+            (_audioCodec && _audioCodec->name) ? _audioCodec->name : "(null)",
+            _audioCtx ? (int)_audioCtx->bit_rate : -1);
+    fflush(stderr);
 
     pushChannelsSampleRateInfo(_audioCtx->ch_layout.nb_channels, _audioCtx->sample_rate);
     pushCodecInfo(_audioCodec->name, _audioCtx->bit_rate);
@@ -647,10 +682,18 @@ void AudioLoader::compute() {
     _network->run();
 
     sampleRate = _pool.value<Real>("internal.sampleRate");
-    numberChannels = (int) _pool.value<Real>("internal.numberChannels");
+    numberChannels = (int)_pool.value<Real>("internal.numberChannels");
     md5 = _pool.value<std::string>("internal.md5");
-    bit_rate = (int) _pool.value<Real>("internal.bit_rate");
+    bit_rate = (int)_pool.value<Real>("internal.bit_rate");
     codec = _pool.value<std::string>("internal.codec");
+
+    fprintf(stderr, "POOL sampleRate=%f numberChannels=%d bit_rate=%d codec='%s' md5='%s'\n",
+            (double)sampleRate,
+            numberChannels,
+            bit_rate,
+            codec.c_str(),
+            md5.c_str());
+    fflush(stderr);
 
     // reset, so it is ready to load audio again
     reset();
