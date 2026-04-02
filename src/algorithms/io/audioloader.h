@@ -25,7 +25,6 @@
 #include "ffmpegapi.h"
 #include "poolstorage.h"
 
-
 #define MAX_AUDIO_FRAME_SIZE 192000
 
 namespace essentia {
@@ -55,7 +54,7 @@ class AudioLoader : public Algorithm {
   AVCodecContext* _audioCtx;
   const AVCodec* _audioCodec;
   AVPacket _packet;
-  AVMD5 *_md5Encoded;
+  AVMD5* _md5Encoded;
   uint8_t _checksum[16];
   bool _computeMD5;
   AVFrame* _decodedFrame;
@@ -69,30 +68,31 @@ class AudioLoader : public Algorithm {
 
   bool _metadataSent;
   bool _codecInfoSent;
+  bool _md5Sent;
   int _metadataChannels;
   Real _metadataSampleRate;
   int _metadataBitRate;
   std::string _metadataCodec;
 
-
   void openAudioFile(const std::string& filename);
   void closeAudioFile();
 
-  void pushChannelsSampleRateInfo(int nChannels, Real sampleRate);
-  void pushCodecInfo(std::string codec, int bit_rate);
+  void writeChannelsSampleRateInfo(int nChannels, Real sampleRate);
+  void writeCodecInfo(const std::string& codec, int bit_rate);
+  void writeMD5Info(const std::string& md5);
+
   int decode_audio_frame(AVCodecContext* audioCtx, float* output,
                          int* outputSize, AVPacket* packet);
   int decodePacket();
   void flushPacket();
   void copyFFmpegOutput();
 
-
  public:
   AudioLoader() : Algorithm(), _buffer(0), _dataSize(0), _demuxCtx(0),
                   _audioCtx(0), _audioCodec(0), _computeMD5(false), _decodedFrame(0),
                   _convertCtxAv(0), _streamIdx(-1), _selectedStream(0), _configured(false),
-                  _metadataSent(false), _codecInfoSent(false), _metadataChannels(0),
-                  _metadataSampleRate(0.0), _metadataBitRate(0), _metadataCodec("") {
+                  _metadataSent(false), _codecInfoSent(false), _md5Sent(false),
+                  _metadataChannels(0), _metadataSampleRate(0.0), _metadataBitRate(0), _metadataCodec("") {
 
     declareOutput(_audio, 1, "audio", "the input audio signal");
     declareOutput(_sampleRate, 0, "sampleRate", "the sampling rate of the audio signal [Hz]");
@@ -106,7 +106,6 @@ class AudioLoader : public Algorithm {
     // Note: av_register_all() was deprecated and removed in FFmpeg 4.0
     // Modern FFmpeg automatically registers formats and codecs
 
-    // use av_malloc, allocate bytes; interpret as float* when needed
     _buffer = (uint8_t*)av_malloc(FFMPEG_BUFFER_SIZE);
     if (!_buffer) {
       throw EssentiaException("Error allocating FFmpeg buffer");
@@ -134,7 +133,6 @@ class AudioLoader : public Algorithm {
   static const char* name;
   static const char* category;
   static const char* description;
-
 };
 
 } // namespace streaming
@@ -180,7 +178,6 @@ class AudioLoader : public Algorithm {
   }
 
   ~AudioLoader() {
-    // NB: this will also delete all the algorithms as the Network took ownership of them
     delete _network;
   }
 

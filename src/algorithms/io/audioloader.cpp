@@ -65,7 +65,6 @@ Real guessSampleRate(const AVCodecContext* audioCtx,
     sampleRate = codecParams->sample_rate;
   }
   if (sampleRate <= 0 && stream && stream->time_base.num == 1 && stream->time_base.den > 0) {
-    // Common FFmpeg convention for audio streams is time_base = 1/sample_rate.
     sampleRate = stream->time_base.den;
   }
   return (Real)sampleRate;
@@ -248,7 +247,7 @@ void AudioLoader::closeAudioFile() {
 }
 
 
-void AudioLoader::pushChannelsSampleRateInfo(int nChannels, Real sampleRate) {
+void AudioLoader::writeChannelsSampleRateInfo(int nChannels, Real sampleRate) {
   if (nChannels > 2) {
     throw EssentiaException("AudioLoader: could not load audio. Audio file has more than 2 channels.");
   }
@@ -257,14 +256,18 @@ void AudioLoader::pushChannelsSampleRateInfo(int nChannels, Real sampleRate) {
   }
 
   _nChannels = nChannels;
-  _channels.push(nChannels);
-  _sampleRate.push(sampleRate);
+  _channels.firstToken() = nChannels;
+  _sampleRate.firstToken() = sampleRate;
 }
 
 
-void AudioLoader::pushCodecInfo(std::string codec, int bit_rate) {
-  _codec.push(codec);
-  _bit_rate.push(bit_rate);
+void AudioLoader::writeCodecInfo(const std::string& codec, int bit_rate) {
+  _codec.firstToken() = codec;
+  _bit_rate.firstToken() = bit_rate;
+}
+
+void AudioLoader::writeMD5Info(const std::string& md5) {
+  _md5.firstToken() = md5;
 }
 
 
@@ -289,13 +292,12 @@ AlgorithmStatus AudioLoader::process() {
     codecParams = _demuxCtx->streams[_streamIdx]->codecpar;
   }
 
-  // cached metadata を信用せず、その場の FFmpeg 構造体から再計算して出す
   if (!_metadataSent) {
     int nChannels = guessChannelCount(_audioCtx, codecParams, _decodedFrame);
     Real sampleRate = guessSampleRate(_audioCtx, codecParams, _decodedFrame, stream);
 
     if (nChannels > 0 && sampleRate > 0) {
-      pushChannelsSampleRateInfo(nChannels, sampleRate);
+      writeChannelsSampleRateInfo(nChannels, sampleRate);
       _metadataChannels = nChannels;
       _metadataSampleRate = sampleRate;
       _metadataSent = true;
@@ -306,7 +308,7 @@ AlgorithmStatus AudioLoader::process() {
     int bitRate = guessBitRate(_audioCtx, codecParams, _demuxCtx);
     std::string codec = guessCodecName(_audioCodec);
 
-    pushCodecInfo(codec, bitRate);
+    writeCodecInfo(codec, bitRate);
     _metadataBitRate = bitRate;
     _metadataCodec = codec;
     _codecInfoSent = true;
@@ -341,7 +343,7 @@ AlgorithmStatus AudioLoader::process() {
         Real sampleRate = guessSampleRate(_audioCtx, eofCodecParams, _decodedFrame, eofStream);
 
         if (nChannels > 0 && sampleRate > 0) {
-          pushChannelsSampleRateInfo(nChannels, sampleRate);
+          writeChannelsSampleRateInfo(nChannels, sampleRate);
           _metadataChannels = nChannels;
           _metadataSampleRate = sampleRate;
           _metadataSent = true;
@@ -351,7 +353,7 @@ AlgorithmStatus AudioLoader::process() {
       if (!_codecInfoSent) {
         int bitRate = guessBitRate(_audioCtx, eofCodecParams, _demuxCtx);
         std::string codec = guessCodecName(_audioCodec);
-        pushCodecInfo(codec, bitRate);
+        writeCodecInfo(codec, bitRate);
         _metadataBitRate = bitRate;
         _metadataCodec = codec;
         _codecInfoSent = true;
@@ -359,14 +361,17 @@ AlgorithmStatus AudioLoader::process() {
 
       closeAudioFile();
 
-      if (_computeMD5) {
-        av_md5_final(_md5Encoded, _checksum);
-        _md5.push(uint8_t_to_hex(_checksum, 16));
+      if (!_md5Sent) {
+        if (_computeMD5) {
+          av_md5_final(_md5Encoded, _checksum);
+          writeMD5Info(uint8_t_to_hex(_checksum, 16));
+        }
+        else {
+          writeMD5Info("");
+        }
+        _md5Sent = true;
       }
-      else {
-        string md5 = "";
-        _md5.push(md5);
-      }
+
       return FINISHED;
     }
   } while (_packet.stream_index != _streamIdx);
@@ -516,7 +521,7 @@ void AudioLoader::flushPacket() {
 
 /**
  * Gets the AVPacket stored in _packet, and decodes all the samples it can from it,
- * putting them in _buffer, the total number of bytes written begin stored in _dataSize.
+ * putting them in _buffer, the total number of bytes written being stored in _dataSize.
  */
 int AudioLoader::decodePacket() {
   float* outBuff = (float*)_buffer;
@@ -627,6 +632,7 @@ void AudioLoader::reset() {
 
   _metadataSent = false;
   _codecInfoSent = false;
+  _md5Sent = false;
   _metadataChannels = 0;
   _metadataSampleRate = 0.0;
   _metadataBitRate = 0;
