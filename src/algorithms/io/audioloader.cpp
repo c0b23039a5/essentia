@@ -13,13 +13,13 @@
  * FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
  * details.
  *
- * You should have received a copy of the Affero GNU General Public License
+ * You should have received a copy of the Affero General Public License
  * version 3 along with this program.  If not, see http://www.gnu.org/licenses/
  */
 
 #include "audioloader.h"
 #include "algorithmfactory.h"
-#include <iomanip>  // setw()
+#include <iomanip>
 
 using namespace std;
 
@@ -103,7 +103,6 @@ const char* AudioLoader::name = essentia::standard::AudioLoader::name;
 const char* AudioLoader::category = essentia::standard::AudioLoader::category;
 const char* AudioLoader::description = essentia::standard::AudioLoader::description;
 
-
 AudioLoader::~AudioLoader() {
   closeAudioFile();
 
@@ -118,7 +117,6 @@ void AudioLoader::configure() {
   _selectedStream = parameter("audioStream").toInt();
   reset();
 }
-
 
 void AudioLoader::openAudioFile(const string& filename) {
   E_DEBUG(EAlgorithm, "AudioLoader: opening file: " << filename);
@@ -147,8 +145,8 @@ void AudioLoader::openAudioFile(const string& filename) {
       _streams.push_back(i);
     }
   }
-  int nAudioStreams = (int)_streams.size();
 
+  int nAudioStreams = (int)_streams.size();
   if (nAudioStreams == 0) {
     avformat_close_input(&_demuxCtx);
     _demuxCtx = 0;
@@ -189,8 +187,7 @@ void AudioLoader::openAudioFile(const string& filename) {
   AVChannelLayout layout;
   if (_audioCtx->ch_layout.nb_channels > 0) {
     layout = _audioCtx->ch_layout;
-  }
-  else {
+  } else {
     int fallbackChannels = guessChannelCount(_audioCtx, codecParams, 0);
     if (fallbackChannels <= 0) {
       avcodec_free_context(&_audioCtx);
@@ -223,7 +220,6 @@ void AudioLoader::openAudioFile(const string& filename) {
   av_md5_init(_md5Encoded);
 }
 
-
 void AudioLoader::closeAudioFile() {
   if (!_demuxCtx) {
     return;
@@ -246,72 +242,17 @@ void AudioLoader::closeAudioFile() {
   _streams.clear();
 }
 
-
-void AudioLoader::writeChannelsSampleRateInfo(int nChannels, Real sampleRate) {
-  if (nChannels > 2) {
-    throw EssentiaException("AudioLoader: could not load audio. Audio file has more than 2 channels.");
-  }
-  if (sampleRate <= 0) {
-    throw EssentiaException("AudioLoader: could not load audio. Audio sampling rate must be greater than 0.");
-  }
-
-  _nChannels = nChannels;
-  _channels.firstToken() = nChannels;
-  _sampleRate.firstToken() = sampleRate;
-}
-
-
-void AudioLoader::writeCodecInfo(const std::string& codec, int bit_rate) {
-  _codec.firstToken() = codec;
-  _bit_rate.firstToken() = bit_rate;
-}
-
-void AudioLoader::writeMD5Info(const std::string& md5) {
-  _md5.firstToken() = md5;
-}
-
-
 string uint8_t_to_hex(uint8_t* input, int size) {
   ostringstream result;
-  for (int i = 0; i < size; ++i) {
-    result << setw(2) << setfill('0') << hex << (int)input[i];
+  for (int i=0; i<size; ++i) {
+    result << setw(2) << setfill('0') << hex << (int) input[i];
   }
   return result.str();
 }
 
-
 AlgorithmStatus AudioLoader::process() {
   if (!parameter("filename").isConfigured()) {
     throw EssentiaException("AudioLoader: Trying to call process() on an AudioLoader algo which hasn't been correctly configured.");
-  }
-
-  AVStream* stream = 0;
-  AVCodecParameters* codecParams = 0;
-  if (_demuxCtx && _streamIdx >= 0 && _streamIdx < (int)_demuxCtx->nb_streams && _demuxCtx->streams[_streamIdx]) {
-    stream = _demuxCtx->streams[_streamIdx];
-    codecParams = _demuxCtx->streams[_streamIdx]->codecpar;
-  }
-
-  if (!_metadataSent) {
-    int nChannels = guessChannelCount(_audioCtx, codecParams, _decodedFrame);
-    Real sampleRate = guessSampleRate(_audioCtx, codecParams, _decodedFrame, stream);
-
-    if (nChannels > 0 && sampleRate > 0) {
-      writeChannelsSampleRateInfo(nChannels, sampleRate);
-      _metadataChannels = nChannels;
-      _metadataSampleRate = sampleRate;
-      _metadataSent = true;
-    }
-  }
-
-  if (!_codecInfoSent) {
-    int bitRate = guessBitRate(_audioCtx, codecParams, _demuxCtx);
-    std::string codec = guessCodecName(_audioCodec);
-
-    writeCodecInfo(codec, bitRate);
-    _metadataBitRate = bitRate;
-    _metadataCodec = codec;
-    _codecInfoSent = true;
   }
 
   do {
@@ -328,50 +269,14 @@ AlgorithmStatus AudioLoader::process() {
       shouldStop(true);
       flushPacket();
 
-      AVStream* eofStream = 0;
-      AVCodecParameters* eofCodecParams = 0;
-      if (_demuxCtx && _streamIdx >= 0 && _streamIdx < (int)_demuxCtx->nb_streams && _demuxCtx->streams[_streamIdx]) {
-        eofStream = _demuxCtx->streams[_streamIdx];
-        eofCodecParams = _demuxCtx->streams[_streamIdx]->codecpar;
-      }
-
-      if (!_metadataSent) {
-        int nChannels = guessChannelCount(_audioCtx, eofCodecParams, _decodedFrame);
-        if (nChannels <= 0 && _nChannels > 0) {
-          nChannels = _nChannels;
-        }
-        Real sampleRate = guessSampleRate(_audioCtx, eofCodecParams, _decodedFrame, eofStream);
-
-        if (nChannels > 0 && sampleRate > 0) {
-          writeChannelsSampleRateInfo(nChannels, sampleRate);
-          _metadataChannels = nChannels;
-          _metadataSampleRate = sampleRate;
-          _metadataSent = true;
-        }
-      }
-
-      if (!_codecInfoSent) {
-        int bitRate = guessBitRate(_audioCtx, eofCodecParams, _demuxCtx);
-        std::string codec = guessCodecName(_audioCodec);
-        writeCodecInfo(codec, bitRate);
-        _metadataBitRate = bitRate;
-        _metadataCodec = codec;
-        _codecInfoSent = true;
+      if (_computeMD5) {
+        av_md5_final(_md5Encoded, _checksum);
+        _metadataMD5 = uint8_t_to_hex(_checksum, 16);
+      } else {
+        _metadataMD5 = "";
       }
 
       closeAudioFile();
-
-      if (!_md5Sent) {
-        if (_computeMD5) {
-          av_md5_final(_md5Encoded, _checksum);
-          writeMD5Info(uint8_t_to_hex(_checksum, 16));
-        }
-        else {
-          writeMD5Info("");
-        }
-        _md5Sent = true;
-      }
-
       return FINISHED;
     }
   } while (_packet.stream_index != _streamIdx);
@@ -383,6 +288,27 @@ AlgorithmStatus AudioLoader::process() {
   int consumed = decodePacket();
   (void)consumed;
 
+  // 実行中により確かな metadata が得られたら更新
+  AVStream* stream = 0;
+  AVCodecParameters* codecParams = 0;
+  if (_demuxCtx && _streamIdx >= 0 && _streamIdx < (int)_demuxCtx->nb_streams && _demuxCtx->streams[_streamIdx]) {
+    stream = _demuxCtx->streams[_streamIdx];
+    codecParams = _demuxCtx->streams[_streamIdx]->codecpar;
+  }
+
+  if (_metadataChannels <= 0) {
+    _metadataChannels = guessChannelCount(_audioCtx, codecParams, _decodedFrame);
+  }
+  if (_metadataSampleRate <= 0) {
+    _metadataSampleRate = guessSampleRate(_audioCtx, codecParams, _decodedFrame, stream);
+  }
+  if (_metadataBitRate <= 0) {
+    _metadataBitRate = guessBitRate(_audioCtx, codecParams, _demuxCtx);
+  }
+  if (_metadataCodec.empty()) {
+    _metadataCodec = guessCodecName(_audioCodec);
+  }
+
   if (_dataSize > 0) {
     copyFFmpegOutput();
     _dataSize = 0;
@@ -391,7 +317,6 @@ AlgorithmStatus AudioLoader::process() {
   av_packet_unref(&_packet);
   return OK;
 }
-
 
 int AudioLoader::decode_audio_frame(AVCodecContext* audioCtx,
                                     float* output,
@@ -407,8 +332,7 @@ int AudioLoader::decode_audio_frame(AVCodecContext* audioCtx,
   if (receive_result == AVERROR(EAGAIN) || receive_result == AVERROR_EOF) {
     gotFrame = 0;
     return (packet->size > 0) ? packet->size : 0;
-  }
-  else if (receive_result < 0) {
+  } else if (receive_result < 0) {
     return receive_result;
   }
   gotFrame = 1;
@@ -435,8 +359,7 @@ int AudioLoader::decode_audio_frame(AVCodecContext* audioCtx,
 
     if (audioCtx->sample_fmt == AV_SAMPLE_FMT_FLT) {
       memcpy(output, _decodedFrame->data[0], inputPlaneSize);
-    }
-    else {
+    } else {
       int samplesWrittern = swr_convert(_convertCtxAv,
                                         (uint8_t**)&output,
                                         outputBufferSamples,
@@ -452,8 +375,7 @@ int AudioLoader::decode_audio_frame(AVCodecContext* audioCtx,
       }
     }
     *outputSize = outputPlaneSize;
-  }
-  else {
+  } else {
     E_DEBUG(EAlgorithm, "AudioLoader: tried to decode packet but didn't get any frame...");
     *outputSize = 0;
   }
@@ -477,8 +399,7 @@ void AudioLoader::flushPacket() {
     int receive_result = avcodec_receive_frame(_audioCtx, _decodedFrame);
     if (receive_result == AVERROR(EAGAIN) || receive_result == AVERROR_EOF) {
       break;
-    }
-    else if (receive_result < 0) {
+    } else if (receive_result < 0) {
       break;
     }
 
@@ -496,8 +417,7 @@ void AudioLoader::flushPacket() {
       if (_audioCtx->sample_fmt == AV_SAMPLE_FMT_FLT) {
         memcpy(_buffer, _decodedFrame->data[0], (std::min)(outPlaneSize, FFMPEG_BUFFER_SIZE));
         _dataSize = (std::min)(outPlaneSize, FFMPEG_BUFFER_SIZE);
-      }
-      else {
+      } else {
         float* outBuff = (float*)_buffer;
         int samplesWritten = swr_convert(_convertCtxAv,
                                          (uint8_t**)&outBuff,
@@ -518,7 +438,6 @@ void AudioLoader::flushPacket() {
   }
 }
 
-
 /**
  * Gets the AVPacket stored in _packet, and decodes all the samples it can from it,
  * putting them in _buffer, the total number of bytes written being stored in _dataSize.
@@ -530,8 +449,7 @@ int AudioLoader::decodePacket() {
   int send_result = avcodec_send_packet(_audioCtx, &_packet);
   if (send_result == AVERROR(EAGAIN)) {
     // decoder not ready to accept packet; try receiving frames first
-  }
-  else if (send_result < 0) {
+  } else if (send_result < 0) {
     char errstring[1204];
     av_strerror(send_result, errstring, sizeof(errstring));
     E_WARNING("AudioLoader: avcodec_send_packet error: " << errstring);
@@ -541,8 +459,7 @@ int AudioLoader::decodePacket() {
   int receive_result = avcodec_receive_frame(_audioCtx, _decodedFrame);
   if (receive_result == AVERROR(EAGAIN) || receive_result == AVERROR_EOF) {
     return 0;
-  }
-  else if (receive_result < 0) {
+  } else if (receive_result < 0) {
     char errstring[1204];
     av_strerror(receive_result, errstring, sizeof(errstring));
     E_WARNING("AudioLoader: avcodec_receive_frame error: " << errstring);
@@ -572,8 +489,7 @@ int AudioLoader::decodePacket() {
 
   if (_audioCtx->sample_fmt == AV_SAMPLE_FMT_FLT) {
     memcpy(outBuff, _decodedFrame->data[0], (std::min)(outPlaneSize, FFMPEG_BUFFER_SIZE));
-  }
-  else {
+  } else {
     int samplesWritten = swr_convert(_convertCtxAv,
                                      (uint8_t**)&outBuff,
                                      inputSamples,
@@ -590,7 +506,6 @@ int AudioLoader::decodePacket() {
   return _packet.size;
 }
 
-
 void AudioLoader::copyFFmpegOutput() {
   int bytesPerSample = av_get_bytes_per_sample(AV_SAMPLE_FMT_FLT);
   int nsamples = _dataSize / (bytesPerSample * _nChannels);
@@ -605,12 +520,11 @@ void AudioLoader::copyFFmpegOutput() {
   float* fbuf = (float*)_buffer;
 
   if (_nChannels == 1) {
-    for (int i = 0; i < nsamples; i++) {
+    for (int i=0; i<nsamples; i++) {
       audio[i].left() = fbuf[i];
     }
-  }
-  else {
-    for (int i = 0; i < nsamples; i++) {
+  } else {
+    for (int i=0; i<nsamples; i++) {
       audio[i].left() = fbuf[2*i];
       audio[i].right() = fbuf[2*i+1];
     }
@@ -618,7 +532,6 @@ void AudioLoader::copyFFmpegOutput() {
 
   _audio.release(nsamples);
 }
-
 
 void AudioLoader::reset() {
   Algorithm::reset();
@@ -630,13 +543,11 @@ void AudioLoader::reset() {
   closeAudioFile();
   openAudioFile(filename);
 
-  _metadataSent = false;
-  _codecInfoSent = false;
-  _md5Sent = false;
   _metadataChannels = 0;
   _metadataSampleRate = 0.0;
   _metadataBitRate = 0;
-  _metadataCodec = (_audioCodec && _audioCodec->name) ? _audioCodec->name : "";
+  _metadataCodec = "";
+  _metadataMD5 = "";
 
   AVCodecParameters* codecParams = 0;
   if (_demuxCtx && _streamIdx >= 0 && _streamIdx < (int)_demuxCtx->nb_streams && _demuxCtx->streams[_streamIdx]) {
@@ -649,6 +560,7 @@ void AudioLoader::reset() {
   _metadataChannels = guessChannelCount(_audioCtx, codecParams, 0);
   _metadataSampleRate = guessSampleRate(_audioCtx, codecParams, 0, stream);
   _metadataBitRate = guessBitRate(_audioCtx, codecParams, _demuxCtx);
+  _metadataCodec = guessCodecName(_audioCodec);
 
   _nChannels = _metadataChannels;
   if (_nChannels <= 0 && _audioCtx) {
@@ -682,17 +594,12 @@ const char* AudioLoader::description = DOC("This algorithm loads the single audi
 "  [5] MP3 - Wikipedia, the free encyclopedia,\n"
 "      http://en.wikipedia.org/wiki/Mp3");
 
-
 void AudioLoader::createInnerNetwork() {
   _loader = streaming::AlgorithmFactory::create("AudioLoader");
   _audioStorage = new streaming::VectorOutput<StereoSample>();
 
-  _loader->output("audio")           >>  _audioStorage->input("data");
-  _loader->output("sampleRate")      >>  PC(_pool, "internal.sampleRate");
-  _loader->output("numberChannels")  >>  PC(_pool, "internal.numberChannels");
-  _loader->output("md5")             >>  PC(_pool, "internal.md5");
-  _loader->output("codec")           >>  PC(_pool, "internal.codec");
-  _loader->output("bit_rate")        >>  PC(_pool, "internal.bit_rate");
+  // metadata は getter で読むので、内部ネットワークは audio だけでよい
+  _loader->output("audio") >> _audioStorage->input("data");
   _network = new scheduler::Network(_loader);
 }
 
@@ -716,14 +623,18 @@ void AudioLoader::compute() {
   vector<StereoSample>& audio = _audio.get();
 
   _audioStorage->setVector(&audio);
-
   _network->run();
 
-  sampleRate = _pool.value<Real>("internal.sampleRate");
-  numberChannels = (int)_pool.value<Real>("internal.numberChannels");
-  md5 = _pool.value<std::string>("internal.md5");
-  bit_rate = (int)_pool.value<Real>("internal.bit_rate");
-  codec = _pool.value<std::string>("internal.codec");
+  streaming::AudioLoader* loader = dynamic_cast<streaming::AudioLoader*>(_loader);
+  if (!loader) {
+    throw EssentiaException("AudioLoader: internal loader is not streaming::AudioLoader");
+  }
+
+  sampleRate = loader->metadataSampleRate();
+  numberChannels = loader->metadataChannels();
+  md5 = loader->metadataMD5();
+  bit_rate = loader->metadataBitRate();
+  codec = loader->metadataCodec();
 
   reset();
 }

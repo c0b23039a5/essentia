@@ -47,7 +47,7 @@ class AudioLoader : public Algorithm {
   // each time we decode a frame we need to have at least a full buffer of free space.
   const int FFMPEG_BUFFER_SIZE = MAX_AUDIO_FRAME_SIZE * 2;
 
-  uint8_t* _buffer;   // byte-oriented buffer, clearer semantics
+  uint8_t* _buffer;
   int _dataSize;
 
   AVFormatContext* _demuxCtx;
@@ -61,25 +61,19 @@ class AudioLoader : public Algorithm {
 
   struct SwrContext* _convertCtxAv;
 
-  int _streamIdx; // index of the audio stream among all the streams contained in the file
+  int _streamIdx;
   std::vector<int> _streams;
   int _selectedStream;
   bool _configured;
 
-  bool _metadataSent;
-  bool _codecInfoSent;
-  bool _md5Sent;
   int _metadataChannels;
   Real _metadataSampleRate;
   int _metadataBitRate;
   std::string _metadataCodec;
+  std::string _metadataMD5;
 
   void openAudioFile(const std::string& filename);
   void closeAudioFile();
-
-  void writeChannelsSampleRateInfo(int nChannels, Real sampleRate);
-  void writeCodecInfo(const std::string& codec, int bit_rate);
-  void writeMD5Info(const std::string& md5);
 
   int decode_audio_frame(AVCodecContext* audioCtx, float* output,
                          int* outputSize, AVPacket* packet);
@@ -88,12 +82,24 @@ class AudioLoader : public Algorithm {
   void copyFFmpegOutput();
 
  public:
-  AudioLoader() : Algorithm(), _buffer(0), _dataSize(0), _demuxCtx(0),
-                  _audioCtx(0), _audioCodec(0), _computeMD5(false), _decodedFrame(0),
-                  _convertCtxAv(0), _streamIdx(-1), _selectedStream(0), _configured(false),
-                  _metadataSent(false), _codecInfoSent(false), _md5Sent(false),
-                  _metadataChannels(0), _metadataSampleRate(0.0), _metadataBitRate(0), _metadataCodec("") {
-
+  AudioLoader()
+      : Algorithm(),
+        _buffer(0),
+        _dataSize(0),
+        _demuxCtx(0),
+        _audioCtx(0),
+        _audioCodec(0),
+        _computeMD5(false),
+        _decodedFrame(0),
+        _convertCtxAv(0),
+        _streamIdx(-1),
+        _selectedStream(0),
+        _configured(false),
+        _metadataChannels(0),
+        _metadataSampleRate(0.0),
+        _metadataBitRate(0),
+        _metadataCodec(""),
+        _metadataMD5("") {
     declareOutput(_audio, 1, "audio", "the input audio signal");
     declareOutput(_sampleRate, 0, "sampleRate", "the sampling rate of the audio signal [Hz]");
     declareOutput(_channels, 0, "numberChannels", "the number of channels");
@@ -102,9 +108,6 @@ class AudioLoader : public Algorithm {
     declareOutput(_codec, 0, "codec", "the codec that is used to decode the input audio");
 
     _audio.setBufferType(BufferUsage::forLargeAudioStream);
-
-    // Note: av_register_all() was deprecated and removed in FFmpeg 4.0
-    // Modern FFmpeg automatically registers formats and codecs
 
     _buffer = (uint8_t*)av_malloc(FFMPEG_BUFFER_SIZE);
     if (!_buffer) {
@@ -129,6 +132,12 @@ class AudioLoader : public Algorithm {
   }
 
   void configure();
+
+  Real metadataSampleRate() const { return _metadataSampleRate; }
+  int metadataChannels() const { return _metadataChannels; }
+  int metadataBitRate() const { return _metadataBitRate; }
+  const std::string& metadataCodec() const { return _metadataCodec; }
+  const std::string& metadataMD5() const { return _metadataMD5; }
 
   static const char* name;
   static const char* category;
