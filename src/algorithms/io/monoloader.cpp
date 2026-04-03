@@ -76,8 +76,15 @@ const char* MonoLoader::description = DOC("This algorithm loads the raw audio da
 "\n"
 "This implementation uses standard::AudioLoader internally.");
 
-MonoLoader::MonoLoader() : _audioLoader(new essentia::standard::AudioLoader()) {
+MonoLoader::MonoLoader() : _audioLoader(0) {
   declareOutput(_audio, "audio", "the audio signal");
+
+  AlgorithmFactory& factory = AlgorithmFactory::instance();
+  _audioLoader = dynamic_cast<essentia::standard::AudioLoader*>(factory.create("AudioLoader"));
+
+  if (!_audioLoader) {
+    throw EssentiaException("MonoLoader: could not create internal standard::AudioLoader");
+  }
 }
 
 MonoLoader::~MonoLoader() {
@@ -168,7 +175,6 @@ void MonoLoader::compute() {
     throw EssentiaException("MonoLoader: Trying to call compute() on a MonoLoader algo which hasn't been correctly configured.");
   }
 
-  // nested standard::AudioLoader が compute() できるように一度バインドはする
   vector<StereoSample> nestedAudio;
   Real nestedSampleRate = 0.0;
   int nestedChannels = 0;
