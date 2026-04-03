@@ -70,18 +70,18 @@ namespace streaming {
 
 class MonoMixer : public Algorithm {
  protected:
-  Sink<int> _channels;
   Sink<StereoSample> _inputAudio;
   Source<Real> _outputAudio;
 
   std::string _type;
   int _preferredBufferSize;
+  int _numberChannels;
 
  public:
   MonoMixer() : Algorithm() {
     _preferredBufferSize = 4096; // arbitrary
+    _numberChannels = 2;
     declareInput(_inputAudio, _preferredBufferSize, "audio", "the input stereo signal");
-    declareInput(_channels, "numberChannels", "the number of channels of the input signal");
     declareOutput(_outputAudio, _preferredBufferSize, "audio", "the downmixed signal");
 
     _outputAudio.setBufferType(BufferUsage::forAudioStream);
@@ -93,10 +93,12 @@ class MonoMixer : public Algorithm {
 
   void declareParameters() {
     declareParameter("type", "the type of downmixing performed", "{left,right,mix}", "mix");
+    declareParameter("numberChannels", "the number of channels of the input signal", "[1,2]", 2);
   }
 
   void configure() {
     _type = parameter("type").toLower();
+    _numberChannels = parameter("numberChannels").toInt();
   }
 
   static const char* name;

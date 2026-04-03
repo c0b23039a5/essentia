@@ -45,7 +45,8 @@ class MonoLoader : public AlgorithmComposite {
     disconnect(_audioLoader->output("bit_rate"), NOWHERE);
     disconnect(_audioLoader->output("codec"), NOWHERE);
     disconnect(_audioLoader->output("sampleRate"), NOWHERE);
-    
+    disconnect(_audioLoader->output("numberChannels"), NOWHERE);
+
     delete _audioLoader;
     delete _mixer;
     delete _resample;

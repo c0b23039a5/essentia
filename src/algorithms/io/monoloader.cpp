@@ -19,6 +19,7 @@
 
 #include "monoloader.h"
 #include "algorithmfactory.h"
+#include "audioloader.h"
 
 using namespace std;
 
@@ -41,14 +42,15 @@ MonoLoader::MonoLoader() : AlgorithmComposite(),
   _mixer       = factory.create("MonoMixer");
   _resample    = factory.create("Resample");
 
-  _audioLoader->output("audio")           >>  _mixer->input("audio");
-  _audioLoader->output("numberChannels")  >>  _mixer->input("numberChannels");
-  _mixer->output("audio")                 >>  _resample->input("signal");
+  _audioLoader->output("audio") >> _mixer->input("audio");
+  _mixer->output("audio")       >> _resample->input("signal");
 
-  _audioLoader->output("md5")        >> NOWHERE;
-  _audioLoader->output("bit_rate")   >> NOWHERE;
-  _audioLoader->output("codec")      >> NOWHERE;
-  _audioLoader->output("sampleRate") >> NOWHERE;
+  // Keep scalar outputs connected so AudioLoader does not complain about unconnected sources.
+  _audioLoader->output("numberChannels") >> NOWHERE;
+  _audioLoader->output("sampleRate")     >> NOWHERE;
+  _audioLoader->output("md5")            >> NOWHERE;
+  _audioLoader->output("bit_rate")       >> NOWHERE;
+  _audioLoader->output("codec")          >> NOWHERE;
 
   attach(_resample->output("signal"), _audio);
 }
@@ -62,7 +64,20 @@ void MonoLoader::configure() {
                           "computeMD5", false,
                           INHERIT("audioStream"));
 
-  int inputSampleRate = (int)lastTokenProduced<Real>(_audioLoader->output("sampleRate"));
+  streaming::AudioLoader* loader = dynamic_cast<streaming::AudioLoader*>(_audioLoader);
+  if (!loader) {
+    throw EssentiaException("MonoLoader: internal AudioLoader is not streaming::AudioLoader");
+  }
+
+  int inputSampleRate = (int)loader->metadataSampleRate();
+  int inputChannels = loader->metadataChannels();
+
+  if (inputSampleRate <= 0) {
+    throw EssentiaException("MonoLoader: AudioLoader did not provide a valid input sample rate");
+  }
+  if (inputChannels <= 0) {
+    throw EssentiaException("MonoLoader: AudioLoader did not provide a valid number of channels");
+  }
 
   // TODO: this should probably be turned into a source as well, same as what's done above for audioLoader->sampleRate
   // also keep it as a parameter (ugly), but act as an optional source (no need
@@ -73,7 +88,8 @@ void MonoLoader::configure() {
                        "outputSampleRate", parameter("sampleRate"),
                        "quality", parameter("resampleQuality"));
 
-  _mixer->configure("type", parameter("downmix"));
+  _mixer->configure("type", parameter("downmix"),
+                    "numberChannels", inputChannels);
 
 }
 

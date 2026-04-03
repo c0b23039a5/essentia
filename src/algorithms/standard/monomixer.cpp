@@ -100,8 +100,11 @@ AlgorithmStatus MonoMixer::process() {
     return process();
   }
 
+  int nChannels = _numberChannels;
+  if (nChannels != 1 && nChannels != 2) {
+    throw EssentiaException("MonoMixer: invalid numberChannels parameter, expected 1 or 2");
+  }
 
-  int nChannels = _channels.lastTokenProduced();
   const vector<StereoSample>& input = _inputAudio.tokens();
   vector<AudioSample>& output = _outputAudio.tokens();
 
