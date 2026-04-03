@@ -598,8 +598,13 @@ void AudioLoader::createInnerNetwork() {
   _loader = streaming::AlgorithmFactory::create("AudioLoader");
   _audioStorage = new streaming::VectorOutput<StereoSample>();
 
-  // metadata は getter で読むので、内部ネットワークは audio だけでよい
-  _loader->output("audio") >> _audioStorage->input("data");
+  _loader->output("audio")           >>  _audioStorage->input("data");
+  _loader->output("sampleRate")      >>  PC(_pool, "internal.sampleRate");
+  _loader->output("numberChannels")  >>  PC(_pool, "internal.numberChannels");
+  _loader->output("md5")             >>  PC(_pool, "internal.md5");
+  _loader->output("codec")           >>  PC(_pool, "internal.codec");
+  _loader->output("bit_rate")        >>  PC(_pool, "internal.bit_rate");
+
   _network = new scheduler::Network(_loader);
 }
 
