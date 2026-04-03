@@ -170,6 +170,7 @@ jobs:
         if: ${{ startsWith(matrix.os, 'windows') }}
         env:
           CIBW_BUILD: "cp312-win_amd64 cp313-win_amd64 cp314-win_amd64"
+          CIBW_TEST_SKIP: "*"
           ESSENTIA_WHEEL_SKIP_3RDPARTY: "0"
           PKG_CONFIG: ${{ env.ESSENTIA_WINDOWS_PKG_CONFIG_EXE }}
           PKG_CONFIG_PATH: ${{ env.ESSENTIA_WINDOWS_PKG_CONFIG_PATH }}
@@ -182,6 +183,8 @@ jobs:
 
       - name: Build wheels
         if: ${{ !startsWith(matrix.os, 'windows') }}
+        env:
+          CIBW_TEST_SKIP: "*"
         run: python -m cibuildwheel . --output-dir wheelhouse --config-file ${{ matrix.config }}.toml
 
       - uses: actions/upload-artifact@v6
@@ -189,3 +192,43 @@ jobs:
         with:
           path: ./wheelhouse/*.whl
           name: artifact-${{ matrix.os }}-${{ matrix.config }}
+
+  test_wheels:
+    name: Test wheels on ${{ matrix.os }} / ${{ matrix.config }}
+    runs-on: ${{ matrix.os }}
+    needs: build_wheels
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            config: cibuildwheel
+          - os: ubuntu-24.04-arm
+            config: cibuildwheel
+          - os: macos-26
+            config: cibuildwheel
+          - os: macos-26-intel
+            config: cibuildwheel
+          - os: windows-2025
+            config: cibuildwheel
+          - os: windows-2025-vs2026
+            config: cibuildwheel
+
+    steps:
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+          cache: "pip"
+          cache-dependency-path: .github/workflows/build-wheels-cibuildwheel.yml
+
+      - name: Download wheel artifacts
+        uses: actions/download-artifact@v6
+        with:
+          name: artifact-${{ matrix.os }}-${{ matrix.config }}
+          path: wheelhouse
+
+      - name: Install and test wheel
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install wheelhouse/*.whl
+          python -c "import essentia; import essentia.standard; import essentia.streaming; from essentia.standard import MonoLoader, MetadataReader, YamlInput, Chromaprinter"
