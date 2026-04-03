@@ -13,13 +13,14 @@
  * FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
  * details.
  *
- * You should have received a copy of the Affero GNU General Public License
+ * You should have received a copy of the Affero General Public License
  * version 3 along with this program.  If not, see http://www.gnu.org/licenses/
  */
 
 #include "monoloader.h"
 #include "algorithmfactory.h"
 #include "audioloader.h"
+#include <cmath>
 
 using namespace std;
 
@@ -30,10 +31,8 @@ const char* MonoLoader::name = essentia::standard::MonoLoader::name;
 const char* MonoLoader::category = essentia::standard::MonoLoader::category;
 const char* MonoLoader::description = essentia::standard::MonoLoader::description;
 
-
 MonoLoader::MonoLoader() : AlgorithmComposite(),
                            _audioLoader(0), _mixer(0), _resample(0), _configured(false) {
-
   declareOutput(_audio, "audio", "the mono audio signal");
 
   AlgorithmFactory& factory = AlgorithmFactory::instance();
@@ -45,7 +44,6 @@ MonoLoader::MonoLoader() : AlgorithmComposite(),
   _audioLoader->output("audio") >> _mixer->input("audio");
   _mixer->output("audio")       >> _resample->input("signal");
 
-  // Keep scalar outputs connected so AudioLoader does not complain about unconnected sources.
   _audioLoader->output("numberChannels") >> NOWHERE;
   _audioLoader->output("sampleRate")     >> NOWHERE;
   _audioLoader->output("md5")            >> NOWHERE;
@@ -57,7 +55,6 @@ MonoLoader::MonoLoader() : AlgorithmComposite(),
 
 void MonoLoader::configure() {
   Parameter filename = parameter("filename");
-  // if no file has been specified, do not do anything
   if (!filename.isConfigured()) return;
 
   _audioLoader->configure("filename", filename,
@@ -79,9 +76,6 @@ void MonoLoader::configure() {
     throw EssentiaException("MonoLoader: AudioLoader did not provide a valid number of channels");
   }
 
-  // TODO: this should probably be turned into a source as well, same as what's done above for audioLoader->sampleRate
-  // also keep it as a parameter (ugly), but act as an optional source (no need
-  // to connect, etc...)
   _params.add("originalSampleRate", inputSampleRate);
 
   _resample->configure("inputSampleRate", inputSampleRate,
@@ -90,12 +84,10 @@ void MonoLoader::configure() {
 
   _mixer->configure("type", parameter("downmix"),
                     "numberChannels", inputChannels);
-
 }
 
 } // namespace streaming
 } // namespace essentia
-
 
 
 namespace essentia {
@@ -103,44 +95,136 @@ namespace standard {
 
 const char* MonoLoader::name = "MonoLoader";
 const char* MonoLoader::category = "Input/output";
-const char* MonoLoader::description = DOC("This algorithm loads the raw audio data from an audio file and downmixes it to mono. Audio is resampled using Resample in case the given sampling rate does not match the sampling rate of the input signal.\n"
+const char* MonoLoader::description = DOC("This algorithm loads the raw audio data from an audio file and downmixes it to mono. Audio is resampled in case the given sampling rate does not match the sampling rate of the input signal.\n"
 "\n"
-"This algorithm uses AudioLoader and thus inherits all of its input requirements and exceptions.");
+"This implementation uses standard::AudioLoader internally and avoids the streaming MonoLoader path.");
 
+MonoLoader::MonoLoader() : _audioLoader(0) {
+  declareOutput(_audio, "audio", "the audio signal");
 
-void MonoLoader::createInnerNetwork() {
-  _loader = streaming::AlgorithmFactory::create("MonoLoader");
-  _audioStorage = new streaming::VectorOutput<AudioSample>();
+  AlgorithmFactory& factory = AlgorithmFactory::instance();
+  _audioLoader = factory.create("AudioLoader");
+}
 
-  connect(_loader->output("audio"), _audioStorage->input("data"));
-
-  _network = new scheduler::Network(_loader);
+MonoLoader::~MonoLoader() {
+  delete _audioLoader;
 }
 
 void MonoLoader::configure() {
-  // if no file has been specified, do not do anything
   if (!parameter("filename").isConfigured()) return;
 
-  _loader->configure(INHERIT("filename"),
-                     INHERIT("sampleRate"),
-                     INHERIT("downmix"),
-                     INHERIT("audioStream"),
-                     INHERIT("resampleQuality"));
+  _audioLoader->configure("filename", parameter("filename"),
+                          "computeMD5", false,
+                          "audioStream", parameter("audioStream"));
+}
+
+void MonoLoader::downmix(const vector<StereoSample>& input,
+                         int numberChannels,
+                         const string& type,
+                         vector<AudioSample>& output) const {
+  output.resize(input.size());
+
+  if (numberChannels == 1) {
+    for (size_t i = 0; i < input.size(); ++i) {
+      output[i] = input[i].left();
+    }
+    return;
+  }
+
+  if (type == "left") {
+    for (size_t i = 0; i < input.size(); ++i) {
+      output[i] = input[i].left();
+    }
+    return;
+  }
+
+  if (type == "right") {
+    for (size_t i = 0; i < input.size(); ++i) {
+      output[i] = input[i].right();
+    }
+    return;
+  }
+
+  // default: mix
+  for (size_t i = 0; i < input.size(); ++i) {
+    output[i] = 0.5f * (input[i].left() + input[i].right());
+  }
+}
+
+void MonoLoader::linearResample(const vector<AudioSample>& input,
+                                Real inputSampleRate,
+                                Real outputSampleRate,
+                                vector<AudioSample>& output) const {
+  if (input.empty()) {
+    output.clear();
+    return;
+  }
+
+  if (inputSampleRate <= 0 || outputSampleRate <= 0) {
+    throw EssentiaException("MonoLoader: sample rates must be greater than 0");
+  }
+
+  if (inputSampleRate == outputSampleRate) {
+    output = input;
+    return;
+  }
+
+  const double ratio = (double)outputSampleRate / (double)inputSampleRate;
+  size_t outputSize = (size_t)std::llround((double)input.size() * ratio);
+  if (outputSize == 0) outputSize = 1;
+
+  output.resize(outputSize);
+
+  for (size_t j = 0; j < outputSize; ++j) {
+    double srcPos = (double)j / ratio;
+    size_t i0 = (size_t)std::floor(srcPos);
+
+    if (i0 >= input.size() - 1) {
+      output[j] = input.back();
+      continue;
+    }
+
+    size_t i1 = i0 + 1;
+    double frac = srcPos - (double)i0;
+    output[j] = (AudioSample)((1.0 - frac) * input[i0] + frac * input[i1]);
+  }
 }
 
 void MonoLoader::compute() {
-  vector<AudioSample>& audio = _audio.get();
+  if (!parameter("filename").isConfigured()) {
+    throw EssentiaException("MonoLoader: Trying to call compute() on a MonoLoader algo which hasn't been correctly configured.");
+  }
 
-  // TODO: _audio.reserve(sth_meaningful);
+  vector<StereoSample> stereoAudio;
+  Real inputSampleRate = 0.0;
+  int numberChannels = 0;
+  string md5;
+  int bitRate = 0;
+  string codec;
 
-  _audioStorage->setVector(&audio);
+  _audioLoader->output("audio").set(stereoAudio);
+  _audioLoader->output("sampleRate").set(inputSampleRate);
+  _audioLoader->output("numberChannels").set(numberChannels);
+  _audioLoader->output("md5").set(md5);
+  _audioLoader->output("bit_rate").set(bitRate);
+  _audioLoader->output("codec").set(codec);
 
-  _network->run();
-  reset();
+  _audioLoader->compute();
+
+  vector<AudioSample> monoAudio;
+  const string downmixType = parameter("downmix").toLower();
+  downmix(stereoAudio, numberChannels, downmixType, monoAudio);
+
+  vector<AudioSample>& output = _audio.get();
+  const Real targetSampleRate = parameter("sampleRate").toReal();
+
+  linearResample(monoAudio, inputSampleRate, targetSampleRate, output);
 }
 
 void MonoLoader::reset() {
-  _network->reset();
+  if (_audioLoader) {
+    _audioLoader->reset();
+  }
 }
 
 } // namespace standard

@@ -20,7 +20,6 @@
 #ifndef ESSENTIA_STREAMING_MONOLOADER_H
 #define ESSENTIA_STREAMING_MONOLOADER_H
 
-
 #include "streamingalgorithmcomposite.h"
 #include "network.h"
 
@@ -40,7 +39,6 @@ class MonoLoader : public AlgorithmComposite {
   MonoLoader();
 
   ~MonoLoader() {
-    // Disconnect all null connections to delete the corresponding DevNull objects created.
     disconnect(_audioLoader->output("md5"), NOWHERE);
     disconnect(_audioLoader->output("bit_rate"), NOWHERE);
     disconnect(_audioLoader->output("codec"), NOWHERE);
@@ -69,41 +67,36 @@ class MonoLoader : public AlgorithmComposite {
   static const char* name;
   static const char* category;
   static const char* description;
-
 };
 
 } // namespace streaming
 } // namespace essentia
 
-#include "vectoroutput.h"
-#include "network.h"
 #include "algorithm.h"
 
 namespace essentia {
 namespace standard {
 
-// Standard non-streaming algorithm comes after the streaming one as it
-// depends on it
 class MonoLoader : public Algorithm {
  protected:
   Output<std::vector<AudioSample> > _audio;
 
-  streaming::Algorithm* _loader;
-  streaming::VectorOutput<AudioSample>* _audioStorage;
-  scheduler::Network* _network;
+  Algorithm* _audioLoader;
 
-  void createInnerNetwork();
+  void downmix(const std::vector<StereoSample>& input,
+               int numberChannels,
+               const std::string& type,
+               std::vector<AudioSample>& output) const;
+
+  void linearResample(const std::vector<AudioSample>& input,
+                      Real inputSampleRate,
+                      Real outputSampleRate,
+                      std::vector<AudioSample>& output) const;
 
  public:
-  MonoLoader() {
-    declareOutput(_audio, "audio", "the audio signal");
+  MonoLoader();
 
-    createInnerNetwork();
-  }
-
-  ~MonoLoader() {
-    delete _network;
-  }
+  ~MonoLoader();
 
   void declareParameters() {
     declareParameter("filename", "the name of the file from which to read", "", Parameter::STRING);
@@ -124,6 +117,5 @@ class MonoLoader : public Algorithm {
 
 } // namespace standard
 } // namespace essentia
-
 
 #endif // ESSENTIA_STREAMING_MONOLOADER_H
