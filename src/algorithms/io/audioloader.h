@@ -175,6 +175,8 @@ class AudioLoader : public Algorithm {
   void createInnerNetwork();
 
  public:
+  using Algorithm::configure;
+
   AudioLoader() : _loader(0),
                   _audioStorage(0),
                   _network(0),
