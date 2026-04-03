@@ -19,7 +19,6 @@
 
 #include "monoloader.h"
 #include "algorithmfactory.h"
-#include "audioloader.h"
 #include <cmath>
 
 using namespace std;
@@ -61,29 +60,7 @@ void MonoLoader::configure() {
                           "computeMD5", false,
                           INHERIT("audioStream"));
 
-  streaming::AudioLoader* loader = dynamic_cast<streaming::AudioLoader*>(_audioLoader);
-  if (!loader) {
-    throw EssentiaException("MonoLoader: internal AudioLoader is not streaming::AudioLoader");
-  }
-
-  int inputSampleRate = (int)loader->metadataSampleRate();
-  int inputChannels = loader->metadataChannels();
-
-  if (inputSampleRate <= 0) {
-    throw EssentiaException("MonoLoader: AudioLoader did not provide a valid input sample rate");
-  }
-  if (inputChannels <= 0) {
-    throw EssentiaException("MonoLoader: AudioLoader did not provide a valid number of channels");
-  }
-
-  _params.add("originalSampleRate", inputSampleRate);
-
-  _resample->configure("inputSampleRate", inputSampleRate,
-                       "outputSampleRate", parameter("sampleRate"),
-                       "quality", parameter("resampleQuality"));
-
-  _mixer->configure("type", parameter("downmix"),
-                    "numberChannels", inputChannels);
+  // streaming版は今回の修正対象ではない
 }
 
 } // namespace streaming
@@ -97,13 +74,10 @@ const char* MonoLoader::name = "MonoLoader";
 const char* MonoLoader::category = "Input/output";
 const char* MonoLoader::description = DOC("This algorithm loads the raw audio data from an audio file and downmixes it to mono. Audio is resampled in case the given sampling rate does not match the sampling rate of the input signal.\n"
 "\n"
-"This implementation uses standard::AudioLoader internally and avoids the streaming MonoLoader path.");
+"This implementation uses standard::AudioLoader internally.");
 
-MonoLoader::MonoLoader() : _audioLoader(0) {
+MonoLoader::MonoLoader() : _audioLoader(new essentia::standard::AudioLoader()) {
   declareOutput(_audio, "audio", "the audio signal");
-
-  AlgorithmFactory& factory = AlgorithmFactory::instance();
-  _audioLoader = factory.create("AudioLoader");
 }
 
 MonoLoader::~MonoLoader() {
@@ -145,7 +119,6 @@ void MonoLoader::downmix(const vector<StereoSample>& input,
     return;
   }
 
-  // default: mix
   for (size_t i = 0; i < input.size(); ++i) {
     output[i] = 0.5f * (input[i].left() + input[i].right());
   }
@@ -195,21 +168,26 @@ void MonoLoader::compute() {
     throw EssentiaException("MonoLoader: Trying to call compute() on a MonoLoader algo which hasn't been correctly configured.");
   }
 
-  vector<StereoSample> stereoAudio;
-  Real inputSampleRate = 0.0;
-  int numberChannels = 0;
-  string md5;
-  int bitRate = 0;
-  string codec;
+  // nested standard::AudioLoader が compute() できるように一度バインドはする
+  vector<StereoSample> nestedAudio;
+  Real nestedSampleRate = 0.0;
+  int nestedChannels = 0;
+  string nestedMD5;
+  int nestedBitRate = 0;
+  string nestedCodec;
 
-  _audioLoader->output("audio").set(stereoAudio);
-  _audioLoader->output("sampleRate").set(inputSampleRate);
-  _audioLoader->output("numberChannels").set(numberChannels);
-  _audioLoader->output("md5").set(md5);
-  _audioLoader->output("bit_rate").set(bitRate);
-  _audioLoader->output("codec").set(codec);
+  _audioLoader->output("audio").set(nestedAudio);
+  _audioLoader->output("sampleRate").set(nestedSampleRate);
+  _audioLoader->output("numberChannels").set(nestedChannels);
+  _audioLoader->output("md5").set(nestedMD5);
+  _audioLoader->output("bit_rate").set(nestedBitRate);
+  _audioLoader->output("codec").set(nestedCodec);
 
   _audioLoader->compute();
+
+  const vector<StereoSample>& stereoAudio = _audioLoader->lastAudio();
+  Real inputSampleRate = _audioLoader->lastSampleRate();
+  int numberChannels = _audioLoader->lastNumberChannels();
 
   vector<AudioSample> monoAudio;
   const string downmixType = parameter("downmix").toLower();

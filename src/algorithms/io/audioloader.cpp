@@ -242,7 +242,7 @@ void AudioLoader::closeAudioFile() {
   _streams.clear();
 }
 
-string uint8_t_to_hex(uint8_t* input, int size) {
+static string uint8_t_to_hex(uint8_t* input, int size) {
   ostringstream result;
   for (int i=0; i<size; ++i) {
     result << setw(2) << setfill('0') << hex << (int) input[i];
@@ -288,7 +288,6 @@ AlgorithmStatus AudioLoader::process() {
   int consumed = decodePacket();
   (void)consumed;
 
-  // 実行中により確かな metadata が得られたら更新
   AVStream* stream = 0;
   AVCodecParameters* codecParams = 0;
   if (_demuxCtx && _streamIdx >= 0 && _streamIdx < (int)_demuxCtx->nb_streams && _demuxCtx->streams[_streamIdx]) {
@@ -438,17 +437,12 @@ void AudioLoader::flushPacket() {
   }
 }
 
-/**
- * Gets the AVPacket stored in _packet, and decodes all the samples it can from it,
- * putting them in _buffer, the total number of bytes written being stored in _dataSize.
- */
 int AudioLoader::decodePacket() {
   float* outBuff = (float*)_buffer;
   _dataSize = 0;
 
   int send_result = avcodec_send_packet(_audioCtx, &_packet);
   if (send_result == AVERROR(EAGAIN)) {
-    // decoder not ready to accept packet; try receiving frames first
   } else if (send_result < 0) {
     char errstring[1204];
     av_strerror(send_result, errstring, sizeof(errstring));
@@ -604,7 +598,6 @@ void AudioLoader::createInnerNetwork() {
   _loader->output("md5")             >>  PC(_pool, "internal.md5");
   _loader->output("codec")           >>  PC(_pool, "internal.codec");
   _loader->output("bit_rate")        >>  PC(_pool, "internal.bit_rate");
-
   _network = new scheduler::Network(_loader);
 }
 
@@ -640,6 +633,13 @@ void AudioLoader::compute() {
   md5 = loader->metadataMD5();
   bit_rate = loader->metadataBitRate();
   codec = loader->metadataCodec();
+
+  _lastAudio = audio;
+  _lastSampleRate = sampleRate;
+  _lastChannels = numberChannels;
+  _lastMD5 = md5;
+  _lastBitRate = bit_rate;
+  _lastCodec = codec;
 
   reset();
 }

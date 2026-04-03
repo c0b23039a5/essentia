@@ -41,10 +41,6 @@ class AudioLoader : public Algorithm {
 
   int _nChannels;
 
-  // MAX_AUDIO_FRAME_SIZE is in bytes, multiply it by 2 to get some margin,
-  // because we might want to decode multiple frames in this buffer (all the
-  // frames contained in a packet, which can be more than 1 as in flac), and
-  // each time we decode a frame we need to have at least a full buffer of free space.
   const int FFMPEG_BUFFER_SIZE = MAX_AUDIO_FRAME_SIZE * 2;
 
   uint8_t* _buffer;
@@ -147,15 +143,12 @@ class AudioLoader : public Algorithm {
 } // namespace streaming
 } // namespace essentia
 
-
 #include "vectoroutput.h"
 #include "algorithm.h"
 
 namespace essentia {
 namespace standard {
 
-// Standard non-streaming algorithm comes after the streaming one as it
-// depends on it
 class AudioLoader : public Algorithm {
 
  protected:
@@ -172,10 +165,24 @@ class AudioLoader : public Algorithm {
   scheduler::Network* _network;
   Pool _pool;
 
+  std::vector<StereoSample> _lastAudio;
+  Real _lastSampleRate;
+  int _lastChannels;
+  std::string _lastMD5;
+  int _lastBitRate;
+  std::string _lastCodec;
+
   void createInnerNetwork();
 
  public:
-  AudioLoader() {
+  AudioLoader() : _loader(0),
+                  _audioStorage(0),
+                  _network(0),
+                  _lastSampleRate(0.0),
+                  _lastChannels(0),
+                  _lastMD5(""),
+                  _lastBitRate(0),
+                  _lastCodec("") {
     declareOutput(_audio, "audio", "the input audio signal");
     declareOutput(_sampleRate, "sampleRate", "the sampling rate of the audio signal [Hz]");
     declareOutput(_channels, "numberChannels", "the number of channels");
@@ -197,9 +204,15 @@ class AudioLoader : public Algorithm {
   }
 
   void configure();
-
   void compute();
   void reset();
+
+  const std::vector<StereoSample>& lastAudio() const { return _lastAudio; }
+  Real lastSampleRate() const { return _lastSampleRate; }
+  int lastNumberChannels() const { return _lastChannels; }
+  const std::string& lastMD5() const { return _lastMD5; }
+  int lastBitRate() const { return _lastBitRate; }
+  const std::string& lastCodec() const { return _lastCodec; }
 
   static const char* name;
   static const char* category;

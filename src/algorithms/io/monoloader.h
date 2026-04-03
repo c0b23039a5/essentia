@@ -73,6 +73,7 @@ class MonoLoader : public AlgorithmComposite {
 } // namespace essentia
 
 #include "algorithm.h"
+#include "audioloader.h"
 
 namespace essentia {
 namespace standard {
@@ -81,7 +82,7 @@ class MonoLoader : public Algorithm {
  protected:
   Output<std::vector<AudioSample> > _audio;
 
-  Algorithm* _audioLoader;
+  essentia::standard::AudioLoader* _audioLoader;
 
   void downmix(const std::vector<StereoSample>& input,
                int numberChannels,
